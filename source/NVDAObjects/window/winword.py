@@ -73,6 +73,25 @@ wdStartOfRangeRowNumber=13
 wdMaximumNumberOfRows=15
 wdStartOfRangeColumnNumber=16
 wdMaximumNumberOfColumns=18
+#Underline style
+wdUnderlineNone = 0
+wdUnderlineSingle = 1
+wdUnderlineWords = 2
+wdUnderlineDouble = 3
+wdUnderlineDotted = 4
+wdUnderlineThick = 6
+wdUnderlineDash = 7
+wdUnderlineDotDash = 9
+wdUnderlineDotDotDash = 10
+wdUnderlineWavy = 11
+wdUnderlineDottedHeavy = 20
+wdUnderlineDashHeavy = 23
+wdUnderlineDotDashHeavy = 25
+wdUnderlineDotDotDashHeavy = 26
+wdUnderlineWavyHeavy = 27
+wdUnderlineDashLong = 39
+wdUnderlineWavyDouble = 43
+wdUnderlineDashLongHeavy = 55
 #Horizontal alignment
 wdAlignParagraphLeft=0
 wdAlignParagraphCenter=1
@@ -256,6 +275,43 @@ wdRevisionTypeLabels={
 	wdRevisionCellDeletion:_("cell deletion"),
 	# Translators: a Microsoft Word revision type (merged table cells)
 	wdRevisionCellMerge:_("cell merge"),
+}
+
+wdUnderlineTypeDescriptions = {
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineSingle:_("Single"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineWords:_("Words only"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDouble:_("Double"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDotted:_("Dotted"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineThick:_("Thick"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDash:_("Dash"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDotDash:_("Dot dash"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDotDotDash:_("Dot dot dash"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineWavy:_("Wave"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDottedHeavy:_("Dotted heavy"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDashHeavy:_("Dashed heavy"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDotDashHeavy:_("Dot dash heavy"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDotDotDashHeavy:_("Dot dot dash heavy"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineWavyHeavy:_("Wave heavy"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDashLong:_("Dashed long"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineWavyDouble:_("Wave double"),
+	# Translators: an underline style in Microsoft Word as announced in the font window.
+	wdUnderlineDashLongHeavy:_("Dashed long heavy"),
 }
 
 storyTypeLocalizedLabels={
@@ -1256,16 +1312,24 @@ class WordDocument(Window):
 			# Translators: a message when toggling formatting in Microsoft word
 			ui.message(_("Italic off"))
 
-	def script_toggleUnderline(self,gesture):
+	@script(gestures=["kb:control+u", "kb:control+shift+u", "kb:control+shift+d", "kb:control+shift+w"])
+	def script_toggleUnderline(self, gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
-			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail, or its within Windows Defender Application Guard.
-			# Eventually UIA will have its own way of detecting format changes at the cursor. For now, just let the gesture through and don't erport anything.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# Eventually UIA will have its own way of detecting format changes at the cursor.
+			# For now, just let the gesture through and don't report anything.
 			return gesture.send()
-		val=self._WaitForValueChangeForAction(lambda: gesture.send(),lambda: self.WinwordSelectionObject.font.underline)
-		if val:
-			# Translators: a message when toggling formatting in Microsoft word
-			ui.message(_("Underline on"))
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.font.underline
+		)
+		if val != wdUnderlineNone:
+			msg = wdUnderlineTypeDescriptions.get(val)
+			if msg:
+				# Translators: a message when toggling formatting in Microsoft word
+				ui.message(_("Underline {style}").format(style=msg))
 		else:
 			# Translators: a message when toggling formatting in Microsoft word
 			ui.message(_("Underline off"))
@@ -1484,7 +1548,7 @@ class WordDocument(Window):
 		"kb:control+shift+.":"increaseDecreaseFontSize",
 		"kb:control+b":"toggleBold",
 		"kb:control+i":"toggleItalic",
-		"kb:control+u":"toggleUnderline",
+		"kb:control+shift+d":"toggleUnderline",
 		"kb:control+=":"toggleSuperscriptSubscript",
 		"kb:control+shift+=":"toggleSuperscriptSubscript",
 		"kb:control+l":"toggleAlignment",
