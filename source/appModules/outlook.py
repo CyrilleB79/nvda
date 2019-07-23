@@ -574,6 +574,10 @@ class OutlookWordDocument(WordDocument):
 
 	ignoreEditorRevisions=True
 	ignorePageNumbers=True # This includes page sections, and page columns. None of which are appropriate for outlook.
+	
+	__gestures={
+		"kb:control+shift+a": "changeCase", # In Outlook Ctrl+Shift+A is equivalent to Shift+F3
+		}
 
 class OutlookUIAWordDocument(UIAWordDocument):
 	""" Forces browse mode to be used on the UI Automation Outlook message viewer if the message is being read)."""
@@ -587,6 +591,10 @@ class OutlookUIAWordDocument(UIAWordDocument):
 
 	def _get_shouldCreateTreeInterceptor(self):
 		return self.isReadonlyViewer
+		
+	__gestures={
+		"kb:control+shift+a": "changeCase", # In Outlook Ctrl+Shift+A is equivalent to Shift+F3
+	}
 
 class DatePickerButton(IAccessible):
 	# Value is a duplicate of name so get rid of it

@@ -17,7 +17,7 @@ import colorsys
 import sayAllHandler
 import eventHandler
 import braille
-from scriptHandler import script
+from scriptHandler import script, getLastScriptRepeatCount
 import languageHandler
 import ui
 import NVDAHelper
@@ -195,6 +195,18 @@ wdThemeColorMainLight2=3
 wdThemeColorText1=13
 wdThemeColorText2=15
 
+# WdCharacterCase enumeration
+wdNextCase = -1
+wdLowerCase = 0
+wdUpperCase = 1
+wdTitleWord = 2
+wdTitleSentence = 4
+wdToggleCase = 5
+wdHalfWidth = 6
+wdFullWidth = 7
+wdKatakana = 8
+wdHiragana = 9
+
 # Word Field types
 FIELD_TYPE_REF = 3 # cross reference field
 FIELD_TYPE_HYPERLINK = 88 # hyperlink field
@@ -271,6 +283,29 @@ storyTypeLocalizedLabels={
 	wdTextFrameStory:_("Text frame"),
 }
 
+wdCharacterCaseTypeLabels = {
+	# Translators: a Microsoft Word character case type
+	wdNextCase: _("No case"), #Returned when selection range contains only case-insensitive characters
+	# Translators: a Microsoft Word character case type
+	wdLowerCase: _("Lowercase"),
+	# Translators: a Microsoft Word character case type
+	wdUpperCase: _("Uppercase"),
+	# Translators: a Microsoft Word character case type
+	wdTitleWord: _("Each word capitalized"),
+	# Translators: a Microsoft Word character case type
+	wdTitleSentence: _("Sentence case"),
+	# Translators: a Microsoft Word character case type
+	wdToggleCase: _("Mixed case"),
+	# Translators: a Microsoft Word character case type
+	wdHalfWidth: _("Half width:"),
+	# Translators: a Microsoft Word character case type
+	wdFullWidth: _("Full width"),
+	# Translators: a Microsoft Word character case type
+	wdKatakana: _("Katakana"),
+	# Translators: a Microsoft Word character case type
+	wdHiragana: _("Hiragana"),
+}
+	
 wdFieldTypesToNVDARoles={
 	wdFieldFormTextInput:controlTypes.ROLE_EDITABLETEXT,
 	wdFieldFormCheckBox:controlTypes.ROLE_CHECKBOX,
@@ -1228,6 +1263,30 @@ class WordDocument(Window):
 			curTime=time.time()
 		return curVal
 
+	def modified_WaitForValueChangeForAction(self,action,fetcher,timeout=0.15):
+		oldVal=fetcher()
+		action()
+		startTime=curTime=time.time()
+		curVal=fetcher()
+		s = []
+		s.append('oldVal = ' + str(oldVal))
+		isSameScript = getLastScriptRepeatCount() > 0
+		retVal=None
+		s.append('IsSameScript = ' + str(isSameScript))
+		while (curTime-startTime)<timeout:
+			s.append(str(curTime) + ' - ' + str(curVal))
+			if curVal!=oldVal and retVal is None:
+				retVal=curVal
+				s.append('retVal = ' + str(curVal))
+			time.sleep(0.002)
+			curVal=fetcher()
+			curTime=time.time()
+			#if (not isSameScript) and curVal!=oldVal:
+			#	break
+		s.append(str(curTime) + ' - ' + str(curVal))
+		log.debug('\n'.join(s))
+		return retVal
+
 	def script_toggleBold(self,gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
@@ -1290,6 +1349,51 @@ class WordDocument(Window):
 		msg=alignmentMessages.get(val)
 		if msg:
 			ui.message(msg)
+
+	@script(gestures=["kb:control+shift+a", "kb:control+shift+k"])
+	def script_toggleCaps(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# Eventually UIA will have its own way of detecting format changes at the cursor.
+			# For now, just let the gesture through and don't report anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: (self.WinwordSelectionObject.font.allcaps, self.WinwordSelectionObject.font.smallcaps)
+		)
+		if val[0]:
+			# Translators: a message when toggling formatting to 'all capital' in Microsoft word
+			ui.message(_("All caps on"))
+		elif val[1]:
+			# Translators: a message when toggling formatting to 'small capital' in Microsoft word
+			ui.message(_("Small caps on"))
+		else:
+			# Translators: a message when toggling formatting to 'No capital' in Microsoft word
+			ui.message(_("Caps off"))
+
+	@script(gesture="kb:shift+f3")
+	def script_changeCase(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# For now, just let the gesture through and don't report anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.Range.Case
+		)
+		# Under Outlook, calling the script quickly a second time gives strange results.
+		# Case value passes sometimes through an intermediate value.
+		# So poll the value a second time.
+		val = self._WaitForValueChangeForAction(
+			lambda: None,
+			lambda: self.WinwordSelectionObject.Range.Case
+		)
+		# Translators: a message when changing case in Microsoft Word
+		ui.message(wdCharacterCaseTypeLabels.get(val))
 
 	def script_toggleSuperscriptSubscript(self,gesture):
 		if not self.WinwordSelectionObject:
