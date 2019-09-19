@@ -1322,7 +1322,7 @@ class WordDocument(Window):
 			return gesture.send()
 		val = self._WaitForValueChangeForAction(
 			lambda: gesture.send(),
-			lambda: self.WinwordSelectionObject.font.smallcaps
+			lambda: self.WinwordSelectionObject.font.allcaps
 		)
 		if val:
 			# Translators: a message when toggling formatting to 'all capital' in Microsoft word
