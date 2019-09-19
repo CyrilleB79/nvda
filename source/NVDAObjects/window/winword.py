@@ -1290,27 +1290,48 @@ class WordDocument(Window):
 		msg=alignmentMessages.get(val)
 		if msg:
 			ui.message(msg)
-	
-	def script_toggleCap(self,gesture):
+
+	@script(gesture="kb:control+shift+k")
+	def script_toggleSmallCaps(self, gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
-			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail, or its within Windows Defender Application Guard.
-			# Eventually UIA will have its own way of detecting format changes at the cursor. For now, just let the gesture through and don't erport anything.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# Eventually UIA will have its own way of detecting format changes at the cursor.
+			# For now, just let the gesture through and don't report anything.
 			return gesture.send()
-		val=self._WaitForValueChangeForAction(lambda: gesture.send(),lambda: (self.WinwordSelectionObject.font.allcaps,self.WinwordSelectionObject.font.smallcaps))
-		if val[0]:
-			# Translators: a message when toggling formatting to 'all capital' in Microsoft word
-			ui.message(_("All cap"))
-		elif val[1]:
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.font.smallcaps
+		)
+		if val:
 			# Translators: a message when toggling formatting to 'small capital' in Microsoft word
 			ui.message(_("Small cap"))
 		else:
 			# Translators: a message when toggling formatting to 'No capital' in Microsoft word
 			ui.message(_("No cap"))
 
+	@script(gesture="kb:control+shift+a")
+	def script_toggleAllCaps(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# Eventually UIA will have its own way of detecting format changes at the cursor.
+			# For now, just let the gesture through and don't report anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.font.smallcaps
+		)
+		if val:
+			# Translators: a message when toggling formatting to 'all capital' in Microsoft word
+			ui.message(_("All cap"))
+		else:
+			# Translators: a message when toggling formatting to 'No capital' in Microsoft word
+			ui.message(_("No cap"))
+
 	
-
-
 	def script_toggleSuperscriptSubscript(self,gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
@@ -1507,8 +1528,6 @@ class WordDocument(Window):
 		"kb:control+u":"toggleUnderline",
 		"kb:control+=":"toggleSuperscriptSubscript",
 		"kb:control+shift+=":"toggleSuperscriptSubscript",
-		"kb:control+shift+a":"toggleCap",
-		"kb:control+shift+k":"toggleCap",
 		"kb:control+l":"toggleAlignment",
 		"kb:control+e":"toggleAlignment",
 		"kb:control+r":"toggleAlignment",
