@@ -11,6 +11,7 @@ import comtypes.automation
 import ctypes
 from hwPortUtils import SYSTEMTIME
 import scriptHandler
+from scriptHandler import script
 import winKernel
 import comHelper
 import NVDAHelper
@@ -572,6 +573,25 @@ class OutlookWordDocument(WordDocument):
 	def _get_role(self):
 		return controlTypes.ROLE_DOCUMENT if self.isReadonlyViewer else super(OutlookWordDocument,self).role
 
+	@script(description="TestShiftTabScript", gesture="kb:shift+tab")
+	def script_shiftTab(self,gesture):
+		"""
+		A script for the tab key which:
+		* if in a table, announces the newly selected cell or new cell where the caret is, or 
+		* If not in a table, announces the distance of the caret from the left edge of the document, and any remaining text on that line.
+		"""
+		gesture.send()
+		selectionObj=self.WinwordSelectionObject
+		inTable=selectionObj.tables.count>0 if selectionObj else False
+		info=self.makeTextInfo(textInfos.POSITION_SELECTION)
+		isCollapsed=info.isCollapsed
+		if inTable and isCollapsed:
+			info.expand(textInfos.UNIT_PARAGRAPH)
+			isCollapsed=info.isCollapsed
+		if not isCollapsed:
+			speech.speakTextInfo(info,reason=controlTypes.REASON_FOCUS)
+		braille.handler.handleCaretMove(self)
+
 	ignoreEditorRevisions=True
 	ignorePageNumbers=True # This includes page sections, and page columns. None of which are appropriate for outlook.
 
@@ -587,6 +607,25 @@ class OutlookUIAWordDocument(UIAWordDocument):
 
 	def _get_shouldCreateTreeInterceptor(self):
 		return self.isReadonlyViewer
+		
+	@script(description="TestShiftTabScript", gesture="kb:shift+tab")
+	def script_shiftTab(self,gesture):
+		"""
+		A script for the tab key which:
+		* if in a table, announces the newly selected cell or new cell where the caret is, or 
+		* If not in a table, announces the distance of the caret from the left edge of the document, and any remaining text on that line.
+		"""
+		gesture.send()
+		selectionObj=self.WinwordSelectionObject
+		inTable=selectionObj.tables.count>0 if selectionObj else False
+		info=self.makeTextInfo(textInfos.POSITION_SELECTION)
+		isCollapsed=info.isCollapsed
+		if inTable and isCollapsed:
+			info.expand(textInfos.UNIT_PARAGRAPH)
+			isCollapsed=info.isCollapsed
+		if not isCollapsed:
+			speech.speakTextInfo(info,reason=controlTypes.REASON_FOCUS)
+		braille.handler.handleCaretMove(self)
 
 class DatePickerButton(IAccessible):
 	# Value is a duplicate of name so get rid of it
