@@ -679,6 +679,29 @@ class GlobalCommands(ScriptableObject):
 	script_toggleReportClickable.__doc__=_("Toggles on and off reporting if clickable")
 	script_toggleReportClickable.category=SCRCAT_DOCUMENTFORMATTING
 
+	@script(
+		# Translators: Input help mode message for cycle automatic language switching command.
+		description=_("Cycles through speech automatic language switching modes."),
+		category=SCRCAT_SPEECH,
+	)
+	def script_cycleSpeechAutomaticLanguageSwitching(self, gesture):
+		if config.conf["speech"]["autoLanguageSwitching"]:
+			if config.conf["speech"]["autoDialectSwitching"]:
+				# Translators: The message announced when toggling the auto language switching speech setting.
+				state = _("Automatic language switching off")
+				config.conf["speech"]["autoLanguageSwitching"]=False
+				config.conf["speech"]["autoDialectSwitching"] = False
+			else:
+				# Translators: The message announced when toggling the auto language switching speech setting.
+				state = _("Automatic language and dialect switching on")
+				config.conf["speech"]["autoDialectSwitching"] = True
+		else:
+			# Translators: The message announced when toggling the auto language switching speech setting.
+			state = _("Automatic language switching on")
+			config.conf["speech"]["autoLanguageSwitching"]=True
+			config.conf["speech"]["autoDialectSwitching"] = False
+		ui.message(state)
+
 	def script_cycleSpeechSymbolLevel(self,gesture):
 		curLevel = config.conf["speech"]["symbolLevel"]
 		for level in characterProcessing.CONFIGURABLE_SPEECH_SYMBOL_LEVELS:
