@@ -195,6 +195,18 @@ wdThemeColorMainLight2=3
 wdThemeColorText1=13
 wdThemeColorText2=15
 
+# WdCharacterCase enumeration
+wdNextCase = -1
+wdLowerCase = 0
+wdUpperCase = 1
+wdTitleWord = 2
+wdTitleSentence = 4
+wdToggleCase = 5
+wdHalfWidth = 6
+wdFullWidth = 7
+wdKatakana = 8
+wdHiragana = 9
+
 # Word Field types
 FIELD_TYPE_REF = 3 # cross reference field
 FIELD_TYPE_HYPERLINK = 88 # hyperlink field
@@ -271,6 +283,29 @@ storyTypeLocalizedLabels={
 	wdTextFrameStory:_("Text frame"),
 }
 
+characterCaseTypeLabels = {
+	# Translators: a Microsoft Word character case type
+	wdNextCase: _("No case"), #Returned when selection range contains only case-insensitive characters
+	# Translators: a Microsoft Word character case type
+	wdLowerCase: _("Lower case"),
+	# Translators: a Microsoft Word character case type
+	wdUpperCase: _("Upper case"),
+	# Translators: a Microsoft Word character case type
+	wdTitleWord: _("Title word"),
+	# Translators: a Microsoft Word character case type
+	wdTitleSentence: _("Title sentence"),
+	# Translators: a Microsoft Word character case type
+	wdToggleCase: _("Mixed case"),
+	# Translators: a Microsoft Word character case type
+	wdHalfWidth: _("Half width:"),
+	# Translators: a Microsoft Word character case type
+	wdFullWidth: _("Full width"),
+	# Translators: a Microsoft Word character case type
+	wdKatakana: _("Katakana"),
+	# Translators: a Microsoft Word character case type
+	wdHiragana: _("Hiragana"),
+}
+	
 wdFieldTypesToNVDARoles={
 	wdFieldFormTextInput:controlTypes.ROLE_EDITABLETEXT,
 	wdFieldFormCheckBox:controlTypes.ROLE_CHECKBOX,
@@ -1401,6 +1436,21 @@ class WordDocument(Window):
 		# Translators: a message when increasing or decreasing font size in Microsoft Word
 		ui.message(_("{size:g} point font").format(size=val))
 
+	@script(gesture="kb:shift+f3")
+	def script_changeCase(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# For now, just let the gesture through and don't report anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.Range.Case
+		)
+		# Translators: a message when changing case in Microsoft Word
+		ui.message(characterCaseTypeLabels.get(val))
+	
 	def script_toggleChangeTracking(self, gesture):
 		if not self.WinwordDocumentObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the status change.
