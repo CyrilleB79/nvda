@@ -1308,6 +1308,26 @@ class WordDocument(Window):
 			# Translators: a message when toggling formatting in Microsoft word
 			ui.message(_("Baseline"))
 
+	@script(gesture="kb:control+shift+h")
+	def script_toggleHidden(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# For now, just let the gesture through and don't erport anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.font.hidden
+		)
+		if val:
+			# Translators: a message when toggling formatting in Microsoft word
+			ui.message(_("Hidden on"))
+		else:
+			# Translators: a message when toggling formatting in Microsoft word
+			ui.message(_("Hidden off"))
+
+	
 	def script_moveParagraphDown(self,gesture):
 		oldBookmark=self.makeTextInfo(textInfos.POSITION_CARET).bookmark
 		gesture.send()
