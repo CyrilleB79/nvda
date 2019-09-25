@@ -1366,7 +1366,21 @@ class WordDocument(Window):
 			# Translators: a message when toggling formatting to 'No capital' in Microsoft word
 			ui.message(_("No cap"))
 
-	
+	@script(gesture="kb:shift+f3")
+	def script_changeCase(self, gesture):
+		if not self.WinwordSelectionObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			# For now, just let the gesture through and don't report anything.
+			return gesture.send()
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordSelectionObject.Range.Case
+		)
+		# Translators: a message when changing case in Microsoft Word
+		ui.message(characterCaseTypeLabels.get(val))
+
 	def script_toggleSuperscriptSubscript(self,gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
@@ -1436,21 +1450,6 @@ class WordDocument(Window):
 		# Translators: a message when increasing or decreasing font size in Microsoft Word
 		ui.message(_("{size:g} point font").format(size=val))
 
-	@script(gesture="kb:shift+f3")
-	def script_changeCase(self, gesture):
-		if not self.WinwordSelectionObject:
-			# We cannot fetch the Word object model, so we therefore cannot report the format change.
-			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
-			# or its within Windows Defender Application Guard.
-			# For now, just let the gesture through and don't report anything.
-			return gesture.send()
-		val = self._WaitForValueChangeForAction(
-			lambda: gesture.send(),
-			lambda: self.WinwordSelectionObject.Range.Case
-		)
-		# Translators: a message when changing case in Microsoft Word
-		ui.message(characterCaseTypeLabels.get(val))
-	
 	def script_toggleChangeTracking(self, gesture):
 		if not self.WinwordDocumentObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the status change.
