@@ -1567,7 +1567,7 @@ def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,uni
 		oldUnderline=attrsCache.get("underline") if attrsCache is not None else None
 		if (underline or oldUnderline is not None) and underline!=oldUnderline:
 			# Translators: Reported when text is underlined.
-			text=(_("underlined") if underline
+			text=(_("underlined") + str(underline) if underline
 				# Translators: Reported when text is not underlined.
 				else _("not underlined"))
 			textList.append(text)

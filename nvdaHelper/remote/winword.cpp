@@ -633,7 +633,7 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 					formatAttribsStream<<L"italic=\"1\" ";
 				}
 				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_UNDERLINE,VT_I4,&iVal)==S_OK&&iVal) {
-					formatAttribsStream<<L"underline=\"1\" ";
+					formatAttribsStream<<L"underline=\""<<iVal<<L"\" ";
 				}
 				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_SUPERSCRIPT,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"text-position=\"super\" ";
@@ -644,6 +644,9 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 					formatAttribsStream<<L"strikethrough=\"1\" ";
 				} else if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_DOUBLESTRIKETHROUGH,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"strikethrough=\"double\" ";
+				}
+				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_HIDDEN,VT_I4,&iVal)==S_OK&&iVal) {
+					formatAttribsStream<<L"text-position=\"hidden\" ";
 				}
 			}
 		}
