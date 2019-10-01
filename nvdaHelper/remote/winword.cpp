@@ -633,7 +633,10 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 					formatAttribsStream<<L"italic=\"1\" ";
 				}
 				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_UNDERLINE,VT_I4,&iVal)==S_OK&&iVal) {
-					formatAttribsStream<<L"underline=\"1\" ";
+					formatAttribsStream<<L"underline=\""<<iVal<<L"\" ";
+					if((formatConfig&formatConfig_reportColor)&&(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_UNDERLINECOLOR,VT_I4,&iVal)==S_OK)) {
+						formatAttribsStream<<L"underline-color=\""<<iVal<<L"\" ";
+					}
 				}
 				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_SUPERSCRIPT,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"text-position=\"super\" ";
@@ -645,6 +648,14 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 				} else if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_DOUBLESTRIKETHROUGH,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"strikethrough=\"double\" ";
 				}
+				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_ALLCAPS,VT_I4,&iVal)==S_OK&&iVal) {
+					formatAttribsStream<<L"capitalization=\"uppercase\" ";
+				} else if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_SMALLCAPS,VT_I4,&iVal)==S_OK&&iVal) {
+					formatAttribsStream<<L"capitalization=\"small-caps\" ";
+				}
+				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_hidden,VT_I4,&iVal)==S_OK&&iVal) {
+					formatAttribsStream<<L"hidden=\"1\" ";
+				}			
 			}
 		}
 	}
