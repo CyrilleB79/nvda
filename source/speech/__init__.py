@@ -1579,7 +1579,7 @@ def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,uni
 					text = (_("underlineColorZzz") if underlineColor
 						# Translators: Reported when text is not underlined with different color.
 						else _("not underlineColorZzz"))
-				textList[-] = textList[-] + text
+				textList[-1] = textList[-1] + text
 		capitalization = attrs.get("capitalization")
 		oldCapitalization = attrsCache.get("capitalization") if attrsCache is not None else None
 		if (capitalization or oldCapitalization is not None) and capitalization != oldCapitalization:
