@@ -1571,6 +1571,37 @@ def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,uni
 				# Translators: Reported when text is not underlined.
 				else _("not underlined"))
 			textList.append(text)
+			if underline and formatConfig["reportColor"]:
+				underlineColor = attrs.get("underline-color")
+				oldUnderlineColor = attrsCache.get("underline-color") if attrsCache is not None else None
+				if (underlineColor or oldUnderlineColor is not None) and underlineColor != oldUnderlineColor:
+					# Translators: Reported when text is underlined with different color.
+					text = (_("underlineColorZzz") if underlineColor
+						# Translators: Reported when text is not underlined with different color.
+						else _("not underlineColorZzz"))
+				textList[-] = textList[-] + text
+		capitalization = attrs.get("capitalization")
+		oldCapitalization = attrsCache.get("capitalization") if attrsCache is not None else None
+		if (capitalization or oldCapitalization is not None) and capitalization != oldCapitalization:
+			if capitalization:
+				# Translators: Reported when text is formatted with small capitals.
+				text = (_("small capitals") if capitalization == "small-caps"
+					# Translators: Reported when text is capitalized.
+					else _("capitalized"))
+			else:
+				# Translators: Reported when text is formatted without capitalization.
+				text = _("not capitalized")
+			textList.append(text)
+		hidden = attrs.get("hidden")
+		oldHidden = attrsCache.get("hidden") if attrsCache is not None else None
+		if (hidden or oldHidden is not None) and hidden != oldHidden:
+			# Translators: Reported when text is hidden.
+			text = (_("hidden") if hidden
+				# Translators: Reported when text is not hidden.
+				else _("no hidden"))
+			textList.append(text)
+		
+		
 		textPosition=attrs.get("text-position")
 		oldTextPosition=attrsCache.get("text-position") if attrsCache is not None else None
 		if (textPosition or oldTextPosition is not None) and textPosition!=oldTextPosition:
