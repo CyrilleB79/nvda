@@ -653,7 +653,7 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 				} else if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_SMALLCAPS,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"capitalization=\"small-caps\" ";
 				}
-				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_hidden,VT_I4,&iVal)==S_OK&&iVal) {
+				if(_com_dispatch_raw_propget(pDispatchFont,wdDISPID_FONT_HIDDEN,VT_I4,&iVal)==S_OK&&iVal) {
 					formatAttribsStream<<L"hidden=\"1\" ";
 				}			
 			}
