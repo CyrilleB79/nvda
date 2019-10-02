@@ -1318,6 +1318,7 @@ def getControlFieldSpeech(attrs,ancestorAttrs,fieldType,formatConfig=None,extraD
 		return ""
 
 def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,unit=None,extraDetail=False , initialFormat=False, separator=CHUNK_SEPARATOR):
+	log.debug(attrs)
 	if not formatConfig:
 		formatConfig=config.conf["documentFormatting"]
 	textList=[]
@@ -1554,7 +1555,7 @@ def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,uni
 			if strikethrough:
 				# Translators: Reported when text is formatted with double strikethrough.
 				# See http://en.wikipedia.org/wiki/Strikethrough
-				text=(_("double strikethrough") if strikethrough=="double"
+				text=(_("double strikethrough") if strikethrough in ["double", "2"]
 				# Translators: Reported when text is formatted with strikethrough.
 				# See http://en.wikipedia.org/wiki/Strikethrough
 				else _("strikethrough"))
@@ -1565,21 +1566,34 @@ def getFormatFieldSpeech(attrs,attrsCache=None,formatConfig=None,reason=None,uni
 			textList.append(text)
 		underline=attrs.get("underline")
 		oldUnderline=attrsCache.get("underline") if attrsCache is not None else None
-		if (underline or oldUnderline is not None) and underline!=oldUnderline:
+		underlineChanged = (underline or oldUnderline is not None) and underline!=oldUnderline
+		if underlineChanged:
 			# Translators: Reported when text is underlined.
-			text=(_("underlined") if underline
+			text=(_("underlined ({underline})".format(underline=underline)) if underline
 				# Translators: Reported when text is not underlined.
 				else _("not underlined"))
 			textList.append(text)
-			if underline and formatConfig["reportColor"]:
-				underlineColor = attrs.get("underline-color")
-				oldUnderlineColor = attrsCache.get("underline-color") if attrsCache is not None else None
-				if (underlineColor or oldUnderlineColor is not None) and underlineColor != oldUnderlineColor:
-					# Translators: Reported when text is underlined with different color.
-					text = (_("underlineColorZzz") if underlineColor
-						# Translators: Reported when text is not underlined with different color.
-						else _("not underlineColorZzz"))
-				textList[-1] = textList[-1] + text
+		underlineColor = attrs.get("underline-color") if underline else None
+		oldUnderlineColor = attrsCache.get("underline-color") if attrsCache is not None else None
+		if underline and formatConfig["reportColor"]:
+			from NVDAObjects.window.winword import WD_DEFAULT_COLOR
+			underlineColorChanged = (
+				oldUnderline is None
+				or underlineColor != oldUnderlineColor
+			)
+			if underlineColorChanged:
+				# Translators: Reported when text is underlined with different color.
+				text = _("{color}").format(color=underlineColor.name if isinstance(underlineColor, colors.RGB) else underlineColor)
+				#text = (_("underlineColorZzz") if underlineColor
+				#	# Translators: Reported when text is not underlined with different color.
+			else:
+				text = " no change "
+			if underlineChanged:
+				textList[-1] = textList[-1] + _(' in {color}').format(color=text)
+			elif underlineColorChanged:
+				textList.append(_('underline color {color}').format(color=text))
+		#else:
+		#	textList.append(' rien ')
 		capitalization = attrs.get("capitalization")
 		oldCapitalization = attrsCache.get("capitalization") if attrsCache is not None else None
 		if (capitalization or oldCapitalization is not None) and capitalization != oldCapitalization:

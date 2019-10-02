@@ -128,7 +128,7 @@ class SymphonyTextInfo(IA2TextTextInfo):
 				# Symphony doesn't provide for semantic communication of spelling errors, so we have to rely on the WAVE underline type.
 				formatField["invalid-spelling"] = True
 			else:
-				formatField["underline"] = underline != "0"
+				formatField["underline"] = underline
 		except KeyError:
 			pass
 		try:
