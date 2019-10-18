@@ -2363,6 +2363,25 @@ class GlobalCommands(ScriptableObject):
 			if message is not None:
 				ui.message(message, speechPriority=speech.priorities.SPRI_NOW)
 
+	@script(
+		gestures = ["kb:windows+uparrow", "kb:windows+downarrow", "kb:control+shift+a"]
+	)
+	def script_changeWindowPosition(self, gesture):
+		fg = api.getForegroundObject()
+		gesture.send()
+		wpl = winUser.GetWindowPlacement(fg.windowHandle)
+		showCmd = wpl.showCmd
+		if showCmd == winUser.SW_SHOWMINIMIZED:
+			# Translators: A woindow position
+			msg = _("Minimized")
+		elif showCmd == winUser.SW_SHOWMAXIMIZED:
+			# Translators: A woindow position
+			msg = _("Maximized")
+		elif showCmd == winUser.SW_SHOWNORMAL:
+			# Translators: A woindow position
+			msg = _("Restored")
+		ui.message(msg)
+
 	__gestures = {
 		# Basic
 		"kb:NVDA+n": "showGui",

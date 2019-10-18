@@ -796,3 +796,28 @@ def setClipboardData(format,data):
 		raise ctypes.WinError()
 	# NULL the global memory handle so that it is not freed at the end of scope as the clipboard now has it.
 	h.forget()
+
+SW_SHOWNORMAL = 1
+SW_SHOWMINIMIZED = 2
+SW_SHOWMAXIMIZED = 3
+
+class WINDOWPLACEMENTSTRUCT(Structure):
+	_fields_ = [
+		('length', c_uint),
+		('flags', c_uint),
+		('showCmd', c_uint),
+		('ptMinPosition', POINT),
+		('ptMaxPosition', POINT),
+		('rcNormalPosition', RECT),
+		('rcDevice', RECT),
+	]
+	#def __init__(self, **kwargs):
+	#	super(WINDOWPLACEMENTSTRUCT, self).__init__(length=sizeof(self), **kwargs)
+
+def GetWindowPlacement(hwnd):
+	wpl = WINDOWPLACEMENTSTRUCT()
+	wpl.length = sizeof(wpl);
+	if not user32.GetWindowPlacement(hwnd,byref(wpl)):
+		raise WinError()
+	return wpl
+	
