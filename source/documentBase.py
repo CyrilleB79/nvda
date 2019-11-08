@@ -4,7 +4,7 @@
 #See the file COPYING for more details.
 
 from baseObject import AutoPropertyObject, ScriptableObject
-from scriptHandler import isScriptWaiting
+from scriptHandler import isScriptWaiting, script
 import config
 import textInfos
 import speech
@@ -89,7 +89,7 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 		raise NotImplementedError
 
 	_missingTableCellSearchLimit=3 #: The number of missing  cells L{_getNearestTableCell} is allowed to skip over to locate the next available cell
-	def _getNearestTableCell(self, tableID, startPos, origRow, origCol, origRowSpan, origColSpan, movement, axis):
+	def _getNearestTableCell(self, tableID, startPos, origRow, origCol, origRowSpan, origColSpan, movement, axis, toEdge=False):
 		"""
 		Locates the nearest table cell relative to another table cell in a given direction, given its coordinates.
 		For example, this is used to move to the cell in the next column, previous row, etc.
@@ -118,12 +118,30 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 		# Determine destination row and column.
 		destRow = origRow
 		destCol = origCol
-		if axis == "row":
-			destRow += origRowSpan if movement == "next" else -1
-		elif axis == "column":
-			destCol += origColSpan if movement == "next" else -1
+		if toEdge:
+			if movement == "previous":
+				if axis == "row":
+					destRow = 1
+				elif axis == "column":
+					destCol = 1
+			elif movement == "next"::
+				if axis == "row":
+					destRow = 1000
+				elif axis == "column":
+					destCol = 1000
+		else:
+			if axis == "row":
+				destRow += origRowSpan if movement == "next" else -1
+			elif axis == "column":
+				destCol += origColSpan if movement == "next" else -1
 
 		# Try and fetch the cell at these coordinates, though  if a  cell is missing, try  several more times moving the coordinates on by one cell each time
+		if toEdge:
+			# For movements to edge, search in the opposit direction from the edge
+			if movement == "next": 
+				movement = "previous"
+			else:
+				movement = "next"
 		limit=self._missingTableCellSearchLimit
 		while limit>0:
 			limit-=1
@@ -140,7 +158,7 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 				destCol+=1 if movement=="next" else -1
 		raise LookupError
 
-	def _tableMovementScriptHelper(self, movement="next", axis=None):
+	def _tableMovementScriptHelper(self, movement="next", axis=None, toEdge=False):
 		if isScriptWaiting():
 			return
 		formatConfig=config.conf["documentFormatting"].copy()
@@ -153,14 +171,18 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 			ui.message(_("Not in a table cell"))
 			return
 
-		try:
-			info = self._getNearestTableCell(tableID, self.selection, origRow, origCol, origRowSpan, origColSpan, movement, axis)
-		except LookupError:
-			# Translators: The message reported when a user attempts to use a table movement command
-			# but the cursor can't be moved in that direction because it is at the edge of the table.
-			ui.message(_("Edge of table"))
-			# Retrieve the cell on which we started.
-			info = self._getTableCellAt(tableID, self.selection,origRow, origCol)
+		if toEdge:
+			info = self._getNearestTableCell(tableID, self.selection, origRow, origCol, origRowSpan, origColSpan, movement, axis, toEdge=True)
+			ui.message("zzzz")
+		else:
+			try:
+				info = self._getNearestTableCell(tableID, self.selection, origRow, origCol, origRowSpan, origColSpan, movement, axis)
+			except LookupError:
+				# Translators: The message reported when a user attempts to use a table movement command
+				# but the cursor can't be moved in that direction because it is at the edge of the table.
+				ui.message(_("Edge of table"))
+				# Retrieve the cell on which we started.
+				info = self._getTableCellAt(tableID, self.selection,origRow, origCol)
 
 		speech.speakTextInfo(info,formatConfig=formatConfig,reason=controlTypes.REASON_CARET)
 		info.collapse()
@@ -186,6 +208,38 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 	# Translators: the description for the previous table column script on browseMode documents.
 	script_previousColumn.__doc__ = _("moves to the previous table column")
 
+	@script(
+		# Translators: the description for the first table row script on browseMode documents.
+		description = _("moves to the first table row"),
+		gesture = "kb:control+alt+pageUp",
+	)
+	def script_firstRow(self, gesture):
+		self._tableMovementScriptHelper(axis="row", movement="previous", toEdge=True)
+	
+	@script(
+		# Translators: the description for the last table row script on browseMode documents.
+		description = _("moves to the last table row"),
+		gesture = "kb:control+alt+pageDown",
+	)
+	def script_LastRow(self, gesture):
+		self._tableMovementScriptHelper(axis="row", movement="next", toEdge=True)
+	
+	@script(
+		# Translators: the description for the first table column script on browseMode documents.
+		description = _("moves to the first table column"),
+		gesture = "kb:control+alt+home",
+	)
+	def script_firstColumn(self, gesture):
+		self._tableMovementScriptHelper(axis="column", movement="previous", toEdge=True)
+	
+	@script(
+		# Translators: the description for the last table column script on browseMode documents.
+		description = _("moves to the last table column"),
+		gesture = "kb:control+alt+end",
+	)
+	def script_LastColumn(self, gesture):
+		self._tableMovementScriptHelper(axis="column", movement="next", toEdge=True)
+	
 	def script_toggleIncludeLayoutTables(self,gesture):
 		if config.conf["documentFormatting"]["includeLayoutTables"]:
 			# Translators: The message announced when toggling the include layout tables browse mode setting.
