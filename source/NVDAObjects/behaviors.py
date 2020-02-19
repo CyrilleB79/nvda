@@ -735,7 +735,11 @@ class _FakeTableCell(NVDAObject):
 
 	def _get_states(self):
 		states = self.parent.states.copy()
-		if not self.location or self.location.width == 0:
+		if (
+			not self.location
+			or self.location.width == 0
+			or self.parent.parent.location.left + self.parent.parent.location.width <= self.location.left
+		):
 			states.add(controlTypes.STATE_INVISIBLE)
 		return states
 
