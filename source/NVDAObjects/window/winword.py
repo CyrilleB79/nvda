@@ -962,6 +962,14 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 		else:
 			moveFunc=_rangeObj.Move
 		res=moveFunc(unit,direction)
+		if res and unit == wdSentence and direction > 0:
+			_rangeObj.expand(wdCharacter)
+			while (
+				_rangeObj.text in ['\x0b', ' ', '\r']
+				and (_rangeObj.start+1) != self.obj.WinwordDocumentObject.range().end
+			):
+				_rangeObj.collapse(wdCollapseEnd)
+				_rangeObj.expand(wdCharacter)
 		#units higher than character and word expand to contain the last text plus the insertion point offset in the document
 		#However move from a character before will incorrectly move to this offset which makes move/expand contridictory to each other
 		#Make sure that move fails if it lands on the final offset but the unit is bigger than character/word
@@ -970,6 +978,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			and (_rangeObj.start+1) == self.obj.WinwordDocumentObject.range().end # character after the range start is the end of the document range
 			):
 			return 0
+		ui.message(f"Range {_rangeObj.start} {_rangeObj.end}")
 		return res
 
 	def move(self,unit,direction,endPoint=None):
@@ -1545,5 +1554,7 @@ class ElementsListDialog(browseMode.ElementsListDialog):
 		("chart", _("&Charts")),
 		# Translators: The label of a radio button to select the type of element
 		# in the browse mode Elements List dialog.
-		("error", _("&Errors")),
-	)
+		("error", _("&Errors")),)
+
+
+
