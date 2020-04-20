@@ -1114,7 +1114,16 @@ class ExcelCellInfoQuicknavIterator(object, metaclass=abc.ABCMeta):
 		self.itemType=itemType
 		self.direction=direction if direction else "next"
 		self.includeCurrent=includeCurrent
-		self.selectedCellInfo=self.document._getSelection().excelCellInfo
+		try:
+			self.selectedCellInfo = self.document._getSelection().excelCellInfo
+		except AttributeError:
+			selectedRange = self.document._getSelection()
+			firstCell = ExcelCell(
+				windowHandle = selectedRange.windowHandle,
+				excelWindowObject = selectedRange.excelWindowObject,
+				excelCellObject = selectedRange.excelRangeObject.Item(1)
+			)
+			self.selectedCellInfo = firstCell.excelCellInfo
 
 	@abc.abstractmethod
 	def collectionFromWorksheet(self,worksheetObject):
