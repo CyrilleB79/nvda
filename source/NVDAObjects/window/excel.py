@@ -657,6 +657,13 @@ class ExcelBase(Window):
 			obj.parent = selection
 		return obj
 
+	def _getActiveCell(self):
+		obj = None
+		cell = self.excelWindowObject.ActiveCell
+		#if not isMerged and numCells>1:
+		obj = ExcelCell(windowHandle=self.windowHandle, excelWindowObject=self.excelWindowObject, excelCellObject=cell)
+		return obj
+		
 	def _getSelection(self):
 		selection=self.excelWindowObject.Selection
 		try:
@@ -910,6 +917,32 @@ class ExcelWorksheet(ExcelBase):
 		"kb:numpadEnter",
 		"kb:shift+enter",
 		"kb:shift+numpadEnter",
+	), canPropagate=True)
+	def script_changeActiveCell(self,gesture):
+		oldSelection = self._getActiveCell()
+		gesture.send()
+		import eventHandler
+		import time
+		newSelection = None
+		curTime = startTime = time.time()
+		while (curTime - startTime) <= 0.15:
+			if scriptHandler.isScriptWaiting():
+				# Prevent lag if keys are pressed rapidly
+				return
+			if eventHandler.isPendingEvents('gainFocus'):
+				return
+			newSelection = self._getActiveCell()
+			if newSelection and newSelection != oldSelection:
+				break
+			api.processPendingEvents(processEventQueue=False)
+			time.sleep(0.015)
+			curTime = time.time()
+		if newSelection:
+			if oldSelection.parent == newSelection.parent:
+				newSelection.parent = oldSelection.parent
+			eventHandler.executeEvent('gainFocus',newSelection)
+
+	@scriptHandler.script(gestures=(
 		"kb:upArrow",
 		"kb:downArrow",
 		"kb:leftArrow",
