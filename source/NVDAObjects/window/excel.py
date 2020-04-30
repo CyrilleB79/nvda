@@ -1138,17 +1138,20 @@ class ExcelCellInfoQuicknavIterator(object, metaclass=abc.ABCMeta):
 			return
 		if not collectionObject:
 			return
-		count=collectionObject.count
-		cellInfos=(ExcelCellInfo*count)()
-		numCellsFetched=ctypes.c_long()
-		address=collectionObject.address(True,True,xlA1,True)
-		NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(self.document.appModule.helperLocalBindingHandle,self.document.windowHandle,BSTR(address),self.cellInfoFlags,count,cellInfos,ctypes.byref(numCellsFetched))
-		for index in range(numCellsFetched.value):
-			ci=cellInfos[index]
-			if not ci.address:
-				log.debugWarning("cellInfo at index %s has no address"%index)
-				break
-			yield self.QuickNavItemClass(self,ci)
+		areasObject = collectionObject.areas
+		for iArea in range(areasObject.count):
+			area = areasObject(iArea + 1)
+			count = area.count
+			cellInfos=(ExcelCellInfo*count)()
+			numCellsFetched=ctypes.c_long()
+			address = area.address(True, True, xlA1, True)
+			NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(self.document.appModule.helperLocalBindingHandle, self.document.windowHandle, BSTR(address), self.cellInfoFlags, count, cellInfos, ctypes.byref(numCellsFetched))
+			for index in range(numCellsFetched.value):
+				ci = cellInfos[index]
+				if not ci.address:
+					log.debugWarning("cellInfo at index %s has no address"%index)
+					break
+				yield self.QuickNavItemClass(self, ci)
 
 class CommentExcelCellInfoQuicknavIterator(ExcelCellInfoQuicknavIterator):
 	QuickNavItemClass=CommentExcelCellInfoQuickNavItem
@@ -1172,6 +1175,11 @@ class ExcelCell(ExcelBase):
 		ci=ExcelCellInfo()
 		numCellsFetched=ctypes.c_long()
 		address=self.excelCellObject.address(True,True,xlA1,True)
+		import globalVars as gv
+		gv.dbgAddress = address;
+		gv.dbgCI = ci
+		from logHandler import log
+		log.debug('_get_excelCellInfo' + str(address))
 		res=NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(self.appModule.helperLocalBindingHandle,self.windowHandle,BSTR(address),NVCELLINFOFLAG_ALL,1,ctypes.byref(ci),ctypes.byref(numCellsFetched))
 		if res!=0 or numCellsFetched.value==0:
 			return None
