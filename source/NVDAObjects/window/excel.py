@@ -919,28 +919,8 @@ class ExcelWorksheet(ExcelBase):
 		"kb:shift+numpadEnter",
 	), canPropagate=True)
 	def script_changeActiveCell(self,gesture):
-		oldSelection = self._getActiveCell()
-		gesture.send()
-		import eventHandler
-		import time
-		newSelection = None
-		curTime = startTime = time.time()
-		while (curTime - startTime) <= 0.15:
-			if scriptHandler.isScriptWaiting():
-				# Prevent lag if keys are pressed rapidly
-				return
-			if eventHandler.isPendingEvents('gainFocus'):
-				return
-			newSelection = self._getActiveCell()
-			if newSelection and newSelection != oldSelection:
-				break
-			api.processPendingEvents(processEventQueue=False)
-			time.sleep(0.015)
-			curTime = time.time()
-		if newSelection:
-			if oldSelection.parent == newSelection.parent:
-				newSelection.parent = oldSelection.parent
-			eventHandler.executeEvent('gainFocus',newSelection)
+		oldObjGetter = newObjGetter = lambda: self._getActiveCell()
+		self.changeSelectionOrActiveCell(gesture, oldObjGetter, newObjGetter)
 
 	@scriptHandler.script(gestures=(
 		"kb:upArrow",
@@ -986,7 +966,12 @@ class ExcelWorksheet(ExcelBase):
 	), canPropagate=True)
 
 	def script_changeSelection(self,gesture):
-		oldSelection=api.getFocusObject()
+		oldObjGetter = lambda: api.getFocusObject()
+		newObjGetter = lambda: self._getSelection()
+		self.changeSelectionOrActiveCell(gesture, oldObjGetter, newObjGetter)
+	
+	def changeSelectionOrActiveCell(self, gesture, oldObjGetter, newObjGetter):
+		oldSelection = oldObjGetter()
 		gesture.send()
 		import eventHandler
 		import time
@@ -998,7 +983,7 @@ class ExcelWorksheet(ExcelBase):
 				return
 			if eventHandler.isPendingEvents('gainFocus'):
 				return
-			newSelection=self._getSelection()
+			newSelection = newObjGetter()
 			if newSelection and newSelection!=oldSelection:
 				break
 			api.processPendingEvents(processEventQueue=False)
