@@ -658,9 +658,7 @@ class ExcelBase(Window):
 		return obj
 
 	def _getActiveCell(self):
-		obj = None
 		cell = self.excelWindowObject.ActiveCell
-		#if not isMerged and numCells>1:
 		obj = ExcelCell(windowHandle=self.windowHandle, excelWindowObject=self.excelWindowObject, excelCellObject=cell)
 		return obj
 		
