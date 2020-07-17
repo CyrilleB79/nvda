@@ -674,6 +674,8 @@ class RowWithoutCellObjects(NVDAObject):
 	def _makeCell(self, column):
 		if column == 0 or column > self.childCount:
 			return None
+		if column == 1:
+			return _FakeCheckableTableCell(parent=self, column=column)
 		return _FakeTableCell(parent=self, column=column)
 
 	def _get_firstChild(self):
@@ -737,6 +739,14 @@ class _FakeTableCell(NVDAObject):
 		return states
 
 
+class _FakeCheckableTableCell(_FakeTableCell):
+
+	def _get_states(self):
+		states = self.parent.states.copy()
+		if self.location and self.location.width == 0:
+			states.add(controlTypes.STATE_INVISIBLE)
+		return states
+	
 class FocusableUnfocusableContainer(NVDAObject):
 	"""Makes an unfocusable container focusable using its first focusable descendant.
 	One instance where this is useful is ARIA applications on the web where the author hasn't set a tabIndex.
