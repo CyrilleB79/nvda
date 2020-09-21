@@ -3113,9 +3113,6 @@ class GlobalCommands(ScriptableObject):
 		recog = uwpOcr.UwpOcr()
 		recogUi.recognizeNavigatorObject(recog)
 
-	_tempEnableScreenCurtain = True
-	_waitingOnScreenCurtainWarningDialog: Optional[wx.Dialog] = None
-	_toggleScreenCurtainMessage: Optional[str] = None
 	@script(
 		# Translators: Input help mode message for toggle report CLDR command.
 		description=_("Toggles on and off the reporting of CLDR characters, such as emojis"),
@@ -3133,6 +3130,66 @@ class GlobalCommands(ScriptableObject):
 		characterProcessing.clearSpeechSymbols()
 		ui.message(state)
 
+	@script(
+		# Translators: Describes a command.
+		description=_("Toggles the state of the focus highlighter."),
+		category=SCRCAT_VISION
+	)
+	def script_toggleFocusHighlighter(self, gesture):
+		from visionEnhancementProviders.NVDAHighlighter import NVDAHighlighter
+		nvdaHighlighterId = NVDAHighlighter.getSettings().getId()
+		nvdaHighlighterInfo = vision.handler.getProviderInfo(nvdaHighlighterId)
+		alreadyRunning = bool(vision.handler.getProviderInstance(nvdaHighlighterInfo))
+
+		# Disable if running
+		if alreadyRunning:
+			# Translators: Reported when the focus highlighter is disabled.
+			message = _("Focus highlighter disabled")
+			try:
+				vision.handler.terminateProvider(nvdaHighlighterInfo)
+			except Exception:
+				# If the focus highlighter was enabled, we do not expect exceptions.
+				log.error("Focus highlighter termination error", exc_info=True)
+				# Translators: Reported when the focus highlighter could not be enabled.
+				message = _("Could not disable focus highlighter")
+			finally:
+				self._toggleFocusHighlightMessage = message
+				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
+				return
+		else:
+			# Check if focus highlighter is available, exit early if not.
+			if not nvdaHighlighterInfo.providerClass.canStart():
+				# Translators: Reported when the focus highlight is not available.
+				message = _("Focus highlight not available")
+				self._toggleFocusHighlightMessage = message
+				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
+				return
+
+			def _enableFocusHighlight():
+				# Translators: Reported when the focus highlight is enabled.
+				enableMessage = _("Focus highlight enabled")
+				try:
+					if alreadyRunning:
+						nvdaHighlighterInfo.providerClass.enableInConfig(True)
+					else:
+						vision.handler.initializeProvider(
+							nvdaHighlighterInfo,
+							temporary="zzz",
+						)
+				except Exception:
+					log.error("Focus Highlight initialization error", exc_info=True)
+					# Translators: Reported when the focus highlight could not be enabled.
+					enableMessage = _("Could not enable focus highlight")
+				finally:
+					self._toggleFocusHighlightMessage = enableMessage
+					ui.message(enableMessage, speechPriority=speech.priorities.Spri.NOW)
+
+			#  Show warning if necessary and do enable.
+			settingsStorage = NVDAHighlighter.getSettings()
+			_enableFocusHighlight()
+
+	_tempEnableScreenCurtain = True
+	_waitingOnScreenCurtainWarningDialog: Optional[wx.Dialog] = None
 	@script(
 		description=_(
 			# Translators: Describes a command.
