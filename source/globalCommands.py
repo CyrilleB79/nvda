@@ -3174,7 +3174,6 @@ class GlobalCommands(ScriptableObject):
 					else:
 						vision.handler.initializeProvider(
 							nvdaHighlighterInfo,
-							temporary="zzz",
 						)
 				except Exception:
 					log.error("Focus Highlight initialization error", exc_info=True)
