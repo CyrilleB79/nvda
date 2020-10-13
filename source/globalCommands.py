@@ -239,10 +239,13 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		settingValue=globalVars.settingsRing.increase()
-		ui.message("%s %s" % (settingName,settingValue))
+		from scriptHandler import willSayAllResume:
+		if willSayAllResume():
+			ui.message("%s %s" % (settingName,settingValue))
 	# Translators: Input help mode message for increase synth setting value command.
 	script_increaseSynthSetting.__doc__=_("Increases the currently active setting in the synth settings ring")
 	script_increaseSynthSetting.category=SCRCAT_SPEECH
+	script_increaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_CARET
 
 	def script_decreaseSynthSetting(self,gesture):
 		settingName=globalVars.settingsRing.currentSettingName
@@ -250,10 +253,13 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		settingValue=globalVars.settingsRing.decrease()
-		ui.message("%s %s" % (settingName,settingValue))
+		from scriptHandler import willSayAllResume:
+		if willSayAllResume():
+			ui.message("%s %s" % (settingName,settingValue))
 	# Translators: Input help mode message for decrease synth setting value command.
 	script_decreaseSynthSetting.__doc__=_("Decreases the currently active setting in the synth settings ring")
 	script_decreaseSynthSetting.category=SCRCAT_SPEECH
+	script_decreaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_CARET
 
 	def script_nextSynthSetting(self,gesture):
 		nextSettingName=globalVars.settingsRing.next()
