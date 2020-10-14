@@ -175,7 +175,14 @@ def queueScript(script,gesture):
 	queueHandler.queueFunction(queueHandler.eventQueue,_queueScriptCallback,script,gesture)
 
 def willSayAllResume(gesture):
-	return config.conf['keyboard']['allowSkimReadingInSayAll']and gesture.wasInSayAll and getattr(gesture.script,'resumeSayAllMode',None)==sayAllHandler.lastSayAllMode
+	return (
+		config.conf['keyboard']['allowSkimReadingInSayAll']
+		and gesture.wasInSayAll
+		and getattr(gesture.script,'resumeSayAllMode',None) in [
+			sayAllHandler.lastSayAllMode,
+			sayAllHandler.CURSOR_ANY
+		]
+	)
 
 def executeScript(script,gesture):
 	"""Executes a given script (function) passing it the given gesture.

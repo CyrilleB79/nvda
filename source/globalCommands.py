@@ -35,7 +35,7 @@ import winKernel
 import treeInterceptorHandler
 import browseMode
 import scriptHandler
-from scriptHandler import script
+from scriptHandler import script, willSayAllResume
 import ui
 import braille
 import brailleInput
@@ -239,13 +239,12 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		settingValue=globalVars.settingsRing.increase()
-		from scriptHandler import willSayAllResume:
-		if willSayAllResume():
+		if not willSayAllResume(gesture):
 			ui.message("%s %s" % (settingName,settingValue))
 	# Translators: Input help mode message for increase synth setting value command.
 	script_increaseSynthSetting.__doc__=_("Increases the currently active setting in the synth settings ring")
 	script_increaseSynthSetting.category=SCRCAT_SPEECH
-	script_increaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_CARET
+	script_increaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_ANY
 
 	def script_decreaseSynthSetting(self,gesture):
 		settingName=globalVars.settingsRing.currentSettingName
@@ -253,13 +252,12 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		settingValue=globalVars.settingsRing.decrease()
-		from scriptHandler import willSayAllResume:
-		if willSayAllResume():
+		if not willSayAllResume(gesture):
 			ui.message("%s %s" % (settingName,settingValue))
 	# Translators: Input help mode message for decrease synth setting value command.
 	script_decreaseSynthSetting.__doc__=_("Decreases the currently active setting in the synth settings ring")
 	script_decreaseSynthSetting.category=SCRCAT_SPEECH
-	script_decreaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_CARET
+	script_decreaseSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_ANY
 
 	def script_nextSynthSetting(self,gesture):
 		nextSettingName=globalVars.settingsRing.next()
@@ -267,10 +265,14 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		nextSettingValue=globalVars.settingsRing.currentSettingValue
-		ui.message("%s %s"%(nextSettingName,nextSettingValue))
+		if willSayAllResume(gesture):
+			ui.message(nextSettingName)
+		else:
+			ui.message("%s %s" % (nextSettingName, nextSettingValue))
 	# Translators: Input help mode message for next synth setting command.
 	script_nextSynthSetting.__doc__=_("Moves to the next available setting in the synth settings ring")
 	script_nextSynthSetting.category=SCRCAT_SPEECH
+	script_nextSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_ANY
 
 	def script_previousSynthSetting(self,gesture):
 		previousSettingName=globalVars.settingsRing.previous()
@@ -278,10 +280,14 @@ class GlobalCommands(ScriptableObject):
 			ui.message(_("No settings"))
 			return
 		previousSettingValue=globalVars.settingsRing.currentSettingValue
-		ui.message("%s %s"%(previousSettingName,previousSettingValue))
+		if willSayAllResume(gesture):
+			ui.message(previousSettingName)
+		else:
+			ui.message("%s %s" % (previousSettingName, previousSettingValue))
 	# Translators: Input help mode message for previous synth setting command.
 	script_previousSynthSetting.__doc__=_("Moves to the previous available setting in the synth settings ring")
 	script_previousSynthSetting.category=SCRCAT_SPEECH
+	script_previousSynthSetting.resumeSayAllMode=sayAllHandler.CURSOR_ANY
 
 	def script_toggleSpeakTypedCharacters(self,gesture):
 		if config.conf["keyboard"]["speakTypedCharacters"]:

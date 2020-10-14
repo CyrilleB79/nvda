@@ -15,6 +15,7 @@ import textInfos
 import queueHandler
 import winKernel
 
+CURSOR_ANY = -1
 CURSOR_CARET = 0
 CURSOR_REVIEW = 1
 
