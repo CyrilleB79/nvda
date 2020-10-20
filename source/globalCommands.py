@@ -3153,39 +3153,31 @@ class GlobalCommands(ScriptableObject):
 				# Translators: Reported when the focus highlighter could not be enabled.
 				message = _("Could not disable focus highlighter")
 			finally:
-				self._toggleFocusHighlightMessage = message
 				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
 				return
 		else:
 			# Check if focus highlighter is available, exit early if not.
 			if not nvdaHighlighterInfo.providerClass.canStart():
 				# Translators: Reported when the focus highlight is not available.
-				message = _("Focus highlight not available")
-				self._toggleFocusHighlightMessage = message
+				message = _("Focus highlighter not available")
 				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
 				return
 
-			def _enableFocusHighlight():
-				# Translators: Reported when the focus highlight is enabled.
-				enableMessage = _("Focus highlight enabled")
-				try:
-					if alreadyRunning:
-						nvdaHighlighterInfo.providerClass.enableInConfig(True)
-					else:
-						vision.handler.initializeProvider(
-							nvdaHighlighterInfo,
-						)
-				except Exception:
-					log.error("Focus Highlight initialization error", exc_info=True)
-					# Translators: Reported when the focus highlight could not be enabled.
-					enableMessage = _("Could not enable focus highlight")
-				finally:
-					self._toggleFocusHighlightMessage = enableMessage
-					ui.message(enableMessage, speechPriority=speech.priorities.Spri.NOW)
-
-			#  Show warning if necessary and do enable.
-			settingsStorage = NVDAHighlighter.getSettings()
-			_enableFocusHighlight()
+			# Translators: Reported when the focus highlight is enabled.
+			enableMessage = _("Focus highlighter enabled")
+			try:
+				if alreadyRunning:
+					nvdaHighlighterInfo.providerClass.enableInConfig(True)
+				else:
+					vision.handler.initializeProvider(
+						nvdaHighlighterInfo,
+					)
+			except Exception:
+				log.error("Focus Highlight initialization error", exc_info=True)
+				# Translators: Reported when the focus highlight could not be enabled.
+				enableMessage = _("Could not enable focus highlight")
+			finally:
+				ui.message(enableMessage, speechPriority=speech.priorities.Spri.NOW)
 
 	_tempEnableScreenCurtain = True
 	_waitingOnScreenCurtainWarningDialog: Optional[wx.Dialog] = None
