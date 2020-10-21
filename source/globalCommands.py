@@ -3166,12 +3166,16 @@ class GlobalCommands(ScriptableObject):
 			# Translators: Reported when the focus highlight is enabled.
 			enableMessage = _("Focus highlighter enabled")
 			try:
-				if alreadyRunning:
-					nvdaHighlighterInfo.providerClass.enableInConfig(True)
-				else:
-					vision.handler.initializeProvider(
-						nvdaHighlighterInfo,
-					)
+				vision.handler.initializeProvider(
+					nvdaHighlighterInfo,
+				)
+				nvdaHighlighterInfo.providerClass.enableInConfig(True)
+				providerInst = vision.handler.getProviderInstance(nvdaHighlighterInfo)
+				settings = providerInst.getSettings()
+				settings.highlightBrowseMode = True
+				settings.highlightFocus = True
+				settings.highlightNavigator = True
+				settings.saveSettings()
 			except Exception:
 				log.error("Focus Highlight initialization error", exc_info=True)
 				# Translators: Reported when the focus highlight could not be enabled.
