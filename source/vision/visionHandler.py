@@ -283,6 +283,7 @@ class VisionHandler(AutoPropertyObject):
 			# We should handle this more gracefully, since this is no reason
 			# to stop a provider from loading successfully.
 			log.debugWarning("Error in initial focus after provider load", exc_info=True)
+		self.handleReviewMove()
 
 	def terminate(self) -> None:
 		self.extensionPoints = None
