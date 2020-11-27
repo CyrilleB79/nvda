@@ -701,10 +701,13 @@ class ExcelBase(Window):
 	@staticmethod
 	def getCellAddress(cell, external=False,format=xlA1):
 		text=cell.Address(False, False, format, external)
+		spellCoords = lambda coords: ''.join(c + ' ' if c.isalpha() else c for c in coords)
 		textList=text.split(':')
 		if len(textList)==2:
 			# Translators: Used to express an address range in excel.
-			text=_("{start} through {end}").format(start=textList[0], end=textList[1])
+			text = _("{start} through {end}").format(start=spellCoords(textList[0]), end=spellCoords(textList[1]))
+		else:
+			text = spellCoords(text)
 		return text
 
 	def _getDropdown(self, selection=None):
@@ -1569,7 +1572,8 @@ class ExcelCell(ExcelBase):
 			rawAddress=self.excelCellInfo.address
 		else:
 			rawAddress=self.excelCellObject.address(False,False,1,False)
-		coords=rawAddress.split('!')[-1].split(':')
+		spellCoords = lambda coords: ''.join(c + ' ' if c.isalpha() else c for c in coords)
+		coords = [spellCoords(c) for c in rawAddress.split('!')[-1].split(':')]
 		if len(coords)==2:
 			# Translators: Used to express an address range in excel.
 			return _("{start} through {end}").format(start=coords[0], end=coords[1])
