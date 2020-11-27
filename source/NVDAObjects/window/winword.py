@@ -437,6 +437,7 @@ class WordDocumentSpellingErrorQuickNavItem(WordDocumentCollectionQuickNavItem):
 
 class WordDocumentListItemQuickNavItem(WordDocumentCollectionQuickNavItem):
 	def rangeFromCollectionItem(self,item):
+		#zzz delete this class ater test
 		return item.range
 
 class WinWordCollectionQuicknavIterator(object):
@@ -553,6 +554,8 @@ class TableWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
 
 
 class ListItemWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
+	quickNavItemClass = WordDocumentListItemQuickNavItem #zzz a suppr
+	
 	def collectionFromRange(self,rangeObj):
 		# return rangeObj.Paragraphs
 		return rangeObj.ListParagraphs
@@ -735,6 +738,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			raise NotImplementedError("position: %s"%position)
 
 	def getTextWithFields(self,formatConfig=None):
+		log.debug(f'formatConfig = {formatConfig}')
 		if self.isCollapsed: return []
 		if self.obj.ignoreFormatting:
 			return [self.text]
@@ -747,6 +751,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 		text=BSTR()
 		# #9067: format config flags map is a dictionary.
 		formatConfigFlags=sum(y for x,y in formatConfigFlagsMap.items() if formatConfig.get(x,False))
+		log.debug(f'formatConfigFlags = {formatConfigFlags}')
 		if self.shouldIncludeLayoutTables:
 			formatConfigFlags+=formatConfigFlag_includeLayoutTables
 		if self.obj.ignoreEditorRevisions:
@@ -773,6 +778,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 						del lastItem.field['language']
 					except KeyError:
 						pass
+		log.debug(f'commandList = {commandList}')
 		return commandList
 
 	def _normalizeControlField(self,field):

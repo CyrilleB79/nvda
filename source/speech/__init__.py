@@ -1125,6 +1125,7 @@ def getTextInfoSpeech(  # noqa: C901
 	controlFieldStackCache=speakTextInfoState.controlFieldStackCache if speakTextInfoState else []
 	formatFieldAttributesCache=speakTextInfoState.formatFieldAttributesCache if speakTextInfoState else {}
 	textWithFields=info.getTextWithFields(formatConfig)
+	
 	# We don't care about node bounds, especially when comparing fields.
 	# Remove them.
 	for command in textWithFields:
@@ -1146,12 +1147,14 @@ def getTextInfoSpeech(  # noqa: C901
 	newControlFieldStack=[]
 	newFormatField=textInfos.FormatField()
 	initialFields=[]
+	log.debug(f'textWithFields = {textWithFields}')
 	for field in textWithFields:
 		if isinstance(field,textInfos.FieldCommand) and field.command in ("controlStart","formatChange"):
 			initialFields.append(field.field)
 		else:
 			break
 	if len(initialFields)>0:
+		log.debug(f'toto {textWithFields[0:len(initialFields)]}')
 		del textWithFields[0:len(initialFields)]
 	endFieldCount=0
 	for field in reversed(textWithFields):
