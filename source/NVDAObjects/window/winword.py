@@ -435,6 +435,10 @@ class WordDocumentSpellingErrorQuickNavItem(WordDocumentCollectionQuickNavItem):
 		# {text} will be replaced with the text of the spelling error.
 		return _(u"spelling: {text}").format(text=text)
 
+class WordDocumentListItemQuickNavItem(WordDocumentCollectionQuickNavItem):
+	def rangeFromCollectionItem(self,item):
+		return item.range
+
 class WinWordCollectionQuicknavIterator(object):
 	"""
 	Allows iterating over an MS Word collection (e.g. HyperLinks) emitting L{QuickNavItem} objects.
@@ -546,6 +550,16 @@ class TableWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
 		return rangeObj.tables
 	def filter(self,item):
 		return item.borders.enable
+
+
+class ListItemWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
+	def collectionFromRange(self,rangeObj):
+		# return rangeObj.Paragraphs
+		return rangeObj.ListParagraphs
+		# or see range.ParagraphForma .ListStyle .Paragraphs .ListFormat
+		# .ParagraphStyle 
+		# see https://docs.microsoft.com/fr-fr/office/vba/api/word.range
+
 
 class ChartWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
 	quickNavItemClass=WordDocumentChartQuickNavItem
@@ -1116,6 +1130,14 @@ class WordDocumentTreeInterceptor(browseMode.BrowseModeDocumentTreeInterceptor):
 			return browseMode.mergeQuickNavItemIterators([comments,revisions],direction)
 		elif nodeType in ("table","container"):
 			return TableWinWordCollectionQuicknavIterator(nodeType,self,direction,rangeObj,includeCurrent).iterate()
+		elif nodeType == "listItem":
+			return ListItemWinWordCollectionQuicknavIterator(
+				nodeType,
+				self,
+				direction,
+				rangeObj,
+				includeCurrent,
+			).iterate()
 		elif nodeType=="error":
 			return SpellingErrorWinWordCollectionQuicknavIterator(nodeType,self,direction,rangeObj,includeCurrent).iterate()
 		elif nodeType=="graphic":
