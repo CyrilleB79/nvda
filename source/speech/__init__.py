@@ -2210,9 +2210,10 @@ def getFormatFieldSpeech(  # noqa: C901
 			textList.append(text)
 	if formatConfig["reportSuperscriptsAndSubscripts"]:
 		textPosition=attrs.get("text-position")
+		textPosition = textPosition.lower() if textPosition else textPosition
+		textPosition = textPosition if textPosition in ['super', 'sub'] else None
 		oldTextPosition=attrsCache.get("text-position") if attrsCache is not None else None
 		if (textPosition or oldTextPosition is not None) and textPosition!=oldTextPosition:
-			textPosition=textPosition.lower() if textPosition else textPosition
 			if textPosition=="super":
 				# Translators: Reported for superscript text.
 				text=_("superscript")
