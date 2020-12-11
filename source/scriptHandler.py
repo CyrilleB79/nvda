@@ -21,6 +21,8 @@ import braille
 import vision
 import keyLabels
 import baseObject
+from winUser import getSystemStickyKeys, SKF_STICKYKEYSON
+
 
 _numScriptsQueued=0 #Number of scripts that are queued to be executed
 #: Number of scripts that send their gestures on that are queued to be executed or are currently being executed.
@@ -29,6 +31,13 @@ _lastScriptTime=0 #Time in MS of when the last script was executed
 _lastScriptRef=None #Holds a weakref to the last script that was executed
 _lastScriptCount=0 #The amount of times the last script was repeated
 _isScriptRunning=False
+
+def getDoubleKeyPressDelay():
+	if getSystemStickyKeys().dwFlags & SKF_STICKYKEYSON:
+		#return float('inf')
+		return 30
+	else:
+		return 0.5
 
 def _makeKbEmulateScript(scriptName):
 	import keyboardHandler
@@ -199,7 +208,7 @@ def executeScript(script,gesture):
 	try:
 		scriptTime=time.time()
 		scriptRef=weakref.ref(scriptFunc)
-		if (scriptTime-_lastScriptTime)<=0.5 and scriptFunc==lastScriptRef:
+		if (scriptTime-_lastScriptTime)<=getDoubleKeyPressDelay() and scriptFunc==lastScriptRef:
 			_lastScriptCount+=1
 		else:
 			_lastScriptCount=0
@@ -219,7 +228,7 @@ def getLastScriptRepeatCount():
 	@returns: a value greater or equal to 0. If the script has not been repeated it is 0, if it has been repeated once its 1, and so forth.
 	@rtype: integer
 	"""
-	if (time.time()-_lastScriptTime)>0.5:
+	if (time.time()-_lastScriptTime)>getDoubleKeyPressDelay():
 		return 0
 	else:
 		return _lastScriptCount
