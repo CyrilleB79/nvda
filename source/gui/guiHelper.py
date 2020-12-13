@@ -125,7 +125,7 @@ def associateElements( firstElement, secondElement):
 	# staticText and (choice, textCtrl or button)
 	if isinstance(firstElement, wx.StaticText) and isinstance(secondElement, (
 		wx.Choice, wx.TextCtrl,
-		wx.SpinCtrl, wx.Button, wx.Slider
+		wx.SpinCtrl, wx.SpinCtrlDouble, wx.Button, wx.Slider
 	)):
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		sizer.Add(firstElement, flag=wx.ALIGN_CENTER_VERTICAL)

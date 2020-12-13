@@ -62,7 +62,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 	noMessageTimeout = boolean(default=false)
 	# Timeout after the message will disappear from braille display
 	# 0 means that no message will be shown
-	messageTimeout = integer(default=4,min=0,max=20)
+	messageTimeout = float(default=4.0,min=0.1,max=20.0)
 	tetherTo = string(default="focus")
 	autoTether = boolean(default=true)
 	readByParagraph = boolean(default=false)

@@ -3363,21 +3363,23 @@ class BrailleSettingsSubPanel(AutoSettingsMixin, SettingsPanel):
 		else:
 			self.showMessagesList.SetSelection(2)
 
-		# Minimal timeout value possible here is 1, because 0 disables showing of braille messages
+		# Minimal timeout value possible here is 0.5, because 0 disables showing of braille messages
 		# and is set using showMessagesList
-		minTimeout = 1
-		maxTimeOut = int(config.conf.getConfigValidation(
+		minTimeout = 0.5
+		maxTimeOut = float(config.conf.getConfigValidation(
 			("braille", "messageTimeout")
 		).kwargs["max"])
 		# Translators: The label for a setting in braille settings to change how long a message stays on the braille display (in seconds).
 		messageTimeoutText = _("Message &timeout (sec)")
 		self.messageTimeoutEdit = sHelper.addLabeledControl(
 			messageTimeoutText,
-			nvdaControls.SelectOnFocusSpinCtrl,
+			nvdaControls.SelectOnFocusSpinCtrlDouble,
 			min=minTimeout,
 			max=maxTimeOut,
-			initial=config.conf["braille"]["messageTimeout"]
+			initial=config.conf["braille"]["messageTimeout"],
+			inc=0.5,
 		)
+		self.messageTimeoutEdit.SetDigits(1)
 		self.bindHelpEvent("BrailleSettingsMessageTimeout", self.messageTimeoutEdit)
 		if self.showMessagesList.GetSelection() != 1:
 			self.messageTimeoutEdit.Disable()
