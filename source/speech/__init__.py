@@ -272,27 +272,45 @@ def getSpellingSpeech(  # noqa: C901
 			speakCharAs=charDesc[0] if textLength>1 else IDEOGRAPHIC_COMMA.join(charDesc)
 		else:
 			speakCharAs=characterProcessing.processSpeechSymbol(locale,speakCharAs)
-		if uppercase and synthConfig["sayCapForCapitals"]:
-			# Translators: cap will be spoken before the given letter when it is capitalized.
-			speakCharAs=_("cap %s")%speakCharAs
 		if uppercase and synth.isSupported("pitch") and synthConfig["capPitchChange"]:
 			yield PitchCommand(offset=synthConfig["capPitchChange"])
 		if config.conf['speech']['autoLanguageSwitching']:
 			yield LangChangeCommand(locale)
-		if len(speakCharAs) == 1 and synthConfig["useSpellingFunctionality"]:
-			if not charMode:
-				yield CharacterModeCommand(True)
-				charMode = True
-		elif charMode:
-			yield CharacterModeCommand(False)
-			charMode = False
 		if uppercase and  synthConfig["beepForCapitals"]:
 			yield BeepCommand(2000, 50)
-		yield speakCharAs
+		# Translators: cap will be spoken before the given letter when it is capitalized.
+		capReportPattern = _("cap %s")
+		shouldSayCap = uppercase and synthConfig["sayCapForCapitals"]
+		if len(speakCharAs) == 1 and synthConfig["useSpellingFunctionality"]:
+			if shouldSayCap:
+				(beforeChar, afterChar) = capReportPattern.split('%s')
+				beforeChar = beforeChar.strip()
+				afterChar = afterChar.strip()
+				if beforeChar:
+					charMode = yield from genString(beforeChar, charMode, synthConfig)
+				charMode = yield from genString(speakCharAs, charMode, synthConfig)
+				if afterChar:
+					charMode = yield from genString(afterChar, charMode, synthConfig)
+			else:
+				yield speakCharAs
+		else:
+			if shouldSayCap:
+				speakCharAs=capReportPattern%speakCharAs
+			yield speakCharAs
 		if uppercase and synth.isSupported("pitch") and synthConfig["capPitchChange"]:
 			yield PitchCommand()
 		yield EndUtteranceCommand()
 
+def genString(s, charMode, synthConfig):
+	if len(s) == 1 and synthConfig["useSpellingFunctionality"]:
+		if not charMode:
+			yield CharacterModeCommand(True)
+			charMode = True
+	elif charMode:
+		yield CharacterModeCommand(False)
+		charMode = False
+	yield s
+	return charMode
 
 # 'getSpeechForSpelling' should be considered deprecated, use getSpellingSpeech instead.
 # The name 'getSpeechForSpelling' was introduced during the 2019.3 release.
