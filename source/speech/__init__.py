@@ -253,7 +253,6 @@ def getSpellingSpeech(  # noqa: C901
 	synthConfig=config.conf["speech"][synth.name]
 	charMode = False
 	textLength=len(text)
-	count = 0
 	localeHasConjuncts = True if locale.split('_',1)[0] in LANGS_WITH_CONJUNCT_CHARS else False
 	charDescList = getCharDescListFromText(text,locale) if localeHasConjuncts else text
 	for item in charDescList:
@@ -281,18 +280,16 @@ def getSpellingSpeech(  # noqa: C901
 		# Translators: cap will be spoken before the given letter when it is capitalized.
 		capReportPattern = _("cap %s")
 		shouldSayCap = uppercase and synthConfig["sayCapForCapitals"]
+		useSpellingFunctionality = synthConfig["useSpellingFunctionality"]
 		if len(speakCharAs) == 1 and synthConfig["useSpellingFunctionality"]:
+			(beforeChar, afterChar) = capReportPattern.split('%s')
+			beforeChar = beforeChar.strip()
+			afterChar = afterChar.strip()
 			if shouldSayCap:
-				(beforeChar, afterChar) = capReportPattern.split('%s')
-				beforeChar = beforeChar.strip()
-				afterChar = afterChar.strip()
-				if beforeChar:
-					charMode = yield from genString(beforeChar, charMode, synthConfig)
-				charMode = yield from genString(speakCharAs, charMode, synthConfig)
-				if afterChar:
-					charMode = yield from genString(afterChar, charMode, synthConfig)
-			else:
-				yield speakCharAs
+				charMode = yield from getStringWithCharModeSpeech(beforeChar, charMode, useSpellingFunctionality)
+			charMode = yield from getStringWithCharModeSpeech(speakCharAs, charMode, useSpellingFunctionality)
+			if shouldSayCap:
+				charMode = yield from getStringWithCharModeSpeech(afterChar, charMode, useSpellingFunctionality)
 		else:
 			if shouldSayCap:
 				speakCharAs=capReportPattern%speakCharAs
@@ -301,15 +298,21 @@ def getSpellingSpeech(  # noqa: C901
 			yield PitchCommand()
 		yield EndUtteranceCommand()
 
-def genString(s, charMode, synthConfig):
-	if len(s) == 1 and synthConfig["useSpellingFunctionality"]:
+def getStringWithCharModeSpeech(
+	text: str,
+	charMode: bool,
+	useSpellingFunctionality: bool,
+) -> Generator[SequenceItemT, None, bool]:
+	if len(text) == 0:
+		return charMode
+	if len(text) == 1 and useSpellingFunctionality:
 		if not charMode:
 			yield CharacterModeCommand(True)
 			charMode = True
 	elif charMode:
 		yield CharacterModeCommand(False)
 		charMode = False
-	yield s
+	yield text
 	return charMode
 
 # 'getSpeechForSpelling' should be considered deprecated, use getSpellingSpeech instead.
