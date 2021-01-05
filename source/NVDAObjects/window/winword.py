@@ -1301,6 +1301,8 @@ class WordDocument(Window):
 			wdAlignParagraphRight:_("Right aligned"),
 			# Translators: a an alignment in Microsoft Word 
 			wdAlignParagraphJustify:_("Justified"),
+			# Translators: an alignment in Microsoft Word 
+			wdAlignParagraphDistributed: _("Distributed"),
 		}
 		msg=alignmentMessages.get(val)
 		if msg:

@@ -190,6 +190,7 @@ constexpr int wdAlignParagraphLeft = 0;
 constexpr int wdAlignParagraphCenter = 1;
 constexpr int wdAlignParagraphRight = 2;
 constexpr int wdAlignParagraphJustify = 3;
+constexpr int wdAlignParagraphDistribute = 4;
 
 // WdLanguageID Enumeration
 constexpr int wdLanguageNone = 0;  //&H0
