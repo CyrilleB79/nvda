@@ -78,6 +78,7 @@ wdAlignParagraphLeft=0
 wdAlignParagraphCenter=1
 wdAlignParagraphRight=2
 wdAlignParagraphJustify=3
+wdAlignParagraphDistribute = 4
 #Units
 wdCharacter=1
 wdWord=2
@@ -1285,6 +1286,13 @@ class WordDocument(Window):
 			# Translators: a message when toggling formatting in Microsoft word
 			ui.message(_("Underline off"))
 
+	@script(gestures=[
+		"kb:control+l",
+		"kb:control+e",
+		"kb:control+r",
+		"kb:control+j",
+		"kb:control+shift+j",
+	])
 	def script_toggleAlignment(self,gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
@@ -1301,8 +1309,8 @@ class WordDocument(Window):
 			wdAlignParagraphRight:_("Right aligned"),
 			# Translators: a an alignment in Microsoft Word 
 			wdAlignParagraphJustify:_("Justified"),
-			# Translators: an alignment in Microsoft Word 
-			wdAlignParagraphDistributed: _("Distributed"),
+			# Translators: an alignment in Microsoft Word
+			wdAlignParagraphDistribute: _("Distributed"),
 		}
 		msg=alignmentMessages.get(val)
 		if msg:
@@ -1486,10 +1494,6 @@ class WordDocument(Window):
 		"kb:control+u":"toggleUnderline",
 		"kb:control+=":"toggleSuperscriptSubscript",
 		"kb:control+shift+=":"toggleSuperscriptSubscript",
-		"kb:control+l":"toggleAlignment",
-		"kb:control+e":"toggleAlignment",
-		"kb:control+r":"toggleAlignment",
-		"kb:control+j":"toggleAlignment",
 		"kb:alt+shift+downArrow":"moveParagraphDown",
 		"kb:alt+shift+upArrow":"moveParagraphUp",
 		"kb:alt+shift+rightArrow":"increaseDecreaseOutlineLevel",

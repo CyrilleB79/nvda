@@ -542,7 +542,7 @@ void generateXMLAttribsForFormatting(IDispatch* pDispatchRange, int startOffset,
 						formatAttribsStream<<L"text-align=\"right\" ";
 						break;
 						case wdAlignParagraphJustify:
-						formatAttribsStream<<L"text-align=\"justified\" ";
+						formatAttribsStream<<L"text-align=\"justify\" ";
 						break;
 						case wdAlignParagraphDistribute:
 						formatAttribsStream<<L"text-align=\"distribute\" ";
