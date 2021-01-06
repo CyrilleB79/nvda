@@ -29,6 +29,7 @@ from .commands import (
 	# Commands that are used in this file.
 	SpeechCommand,
 	PitchCommand,
+	RateCommand,
 	LangChangeCommand,
 	BeepCommand,
 	EndUtteranceCommand,
@@ -46,7 +47,6 @@ from .commands import (  # noqa: F401
 	BreakCommand,
 	BaseProsodyCommand,
 	VolumeCommand,
-	RateCommand,
 	PhonemeCommand,
 	BaseCallbackCommand,
 	CallbackCommand,
@@ -757,7 +757,7 @@ def speak(  # noqa: C901
 		elif isinstance(item,str):
 			if not item: continue
 			if autoLanguageSwitching and curLanguage!=prevLanguage:
-				speechSequence.append(LangChangeCommand(curLanguage))
+				speechSequence.extend(getLangChangeSequence(curLanguage, defaultLanguage))
 				prevLanguage=curLanguage
 			speechSequence.append(item)
 		else:
@@ -785,6 +785,15 @@ def speak(  # noqa: C901
 				speechSequence[index]+=CHUNK_SEPARATOR
 	_manager.speak(speechSequence, priority)
 
+
+def getLangChangeSequence(curLanguage, defaultLanguage):
+	seq = []
+	seq.append(LangChangeCommand(curLanguage))
+	if curLanguage != defaultLanguage:
+		seq.append(RateCommand(offset=-45))
+	else:
+		seq.append(RateCommand())
+	return seq
 
 def speakPreselectedText(
 		text: str,
