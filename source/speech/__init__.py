@@ -746,6 +746,7 @@ def speak(  # noqa: C901
 	curLanguage=defaultLanguage=getCurrentLanguage()
 	prevLanguage=None
 	defaultLanguageRoot=defaultLanguage.split('_')[0]
+	prevLangProfile = getLangProfile(curLanguage)
 	oldSpeechSequence=speechSequence
 	speechSequence=[]
 	for item in oldSpeechSequence:
@@ -756,9 +757,11 @@ def speak(  # noqa: C901
 				curLanguage=defaultLanguage
 		elif isinstance(item,str):
 			if not item: continue
-			if autoLanguageSwitching and curLanguage!=prevLanguage:
-				speechSequence.extend(getLangChangeSequence(curLanguage, defaultLanguage))
+			curLangProfile = getLangProfile(curLanguage)
+			if autoLanguageSwitching and curLangProfile != prevLangProfile:
+				speechSequence.extend(getLangChangeSequence(curLanguage, defaultLanguage, curLangProfile))
 				prevLanguage=curLanguage
+				preVlangProfile = curLangProfile
 			speechSequence.append(item)
 		else:
 			speechSequence.append(item)
@@ -786,13 +789,11 @@ def speak(  # noqa: C901
 	_manager.speak(speechSequence, priority)
 
 
-def getLangChangeSequence(curLanguage, defaultLanguage):
+def getLangChangeSequence(curLanguage, curLangProfile, PrevLangProfile):
 	seq = []
 	seq.append(LangChangeCommand(curLanguage))
-	if curLanguage != defaultLanguage:
-		seq.append(RateCommand(offset=-45))
-	else:
-		seq.append(RateCommand())
+	if curLangProfile != prevLangProfile:
+		seq.append(ConfigProfileTriggerCommand(curLangProfile.trigger))
 	return seq
 
 def speakPreselectedText(
