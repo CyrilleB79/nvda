@@ -3185,6 +3185,7 @@ class GlobalCommands(ScriptableObject):
 
 	_tempEnableScreenCurtain = True
 	_waitingOnScreenCurtainWarningDialog: Optional[wx.Dialog] = None
+	_toggleScreenCurtainMessage: Optional[str] = None
 	@script(
 		description=_(
 			# Translators: Describes a command.
