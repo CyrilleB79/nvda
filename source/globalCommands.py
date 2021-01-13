@@ -3132,10 +3132,10 @@ class GlobalCommands(ScriptableObject):
 
 	@script(
 		# Translators: Describes a command.
-		description=_("Toggles the state of the focus highlighter."),
+		description=_("Toggles the state of the visual highlighter."),
 		category=SCRCAT_VISION
 	)
-	def script_toggleFocusHighlighter(self, gesture):
+	def script_toggleVisualHighlighter(self, gesture):
 		from visionEnhancementProviders.NVDAHighlighter import NVDAHighlighter
 		nvdaHighlighterId = NVDAHighlighter.getSettings().getId()
 		nvdaHighlighterInfo = vision.handler.getProviderInfo(nvdaHighlighterId)
@@ -3143,28 +3143,28 @@ class GlobalCommands(ScriptableObject):
 
 		# Disable if running
 		if alreadyRunning:
-			# Translators: Reported when the focus highlighter is disabled.
-			message = _("Focus highlighter disabled")
+			# Translators: Reported when the visual highlighter is disabled.
+			message = _("Visual highlighter disabled")
 			try:
 				vision.handler.terminateProvider(nvdaHighlighterInfo)
 			except Exception:
-				# If the focus highlighter was enabled, we do not expect exceptions.
-				log.error("Focus highlighter termination error", exc_info=True)
-				# Translators: Reported when the focus highlighter could not be enabled.
-				message = _("Could not disable focus highlighter")
+				# If the visual highlighter was enabled, we do not expect exceptions.
+				log.error("Visual highlighter termination error", exc_info=True)
+				# Translators: Reported when the visual highlighter could not be enabled.
+				message = _("Could not disable visual highlighter")
 			finally:
 				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
 				return
 		else:
-			# Check if focus highlighter is available, exit early if not.
+			# Check if visual highlighter is available, exit early if not.
 			if not nvdaHighlighterInfo.providerClass.canStart():
-				# Translators: Reported when the focus highlight is not available.
-				message = _("Focus highlighter not available")
+				# Translators: Reported when the visual highlighter is not available.
+				message = _("Visual highlighter not available")
 				ui.message(message, speechPriority=speech.priorities.Spri.NOW)
 				return
 
-			# Translators: Reported when the focus highlight is enabled.
-			enableMessage = _("Focus highlighter enabled")
+			# Translators: Reported when the visual highlighter is enabled.
+			enableMessage = _("Visual highlighter enabled")
 			try:
 				vision.handler.initializeProvider(
 					nvdaHighlighterInfo,
@@ -3177,9 +3177,9 @@ class GlobalCommands(ScriptableObject):
 				settings.highlightNavigator = True
 				settings.saveSettings()
 			except Exception:
-				log.error("Focus Highlight initialization error", exc_info=True)
-				# Translators: Reported when the focus highlight could not be enabled.
-				enableMessage = _("Could not enable focus highlight")
+				log.error("Visual Highlighter initialization error", exc_info=True)
+				# Translators: Reported when the visual highlighter could not be enabled.
+				enableMessage = _("Could not enable visual highlighter")
 			finally:
 				ui.message(enableMessage, speechPriority=speech.priorities.Spri.NOW)
 
