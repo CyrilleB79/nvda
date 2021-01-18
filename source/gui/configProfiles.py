@@ -281,6 +281,8 @@ class ProfilesDialog(
 			False)
 		# Translators: Displayed for the configuration profile trigger for say all.
 		yield "sayAll", _("Say all"), True
+		# Translators: Displayed for the configuration profile trigger for language change.
+		yield "languageChange", _("Language change"), True
 
 	def onClose(self, evt):
 		if self.disableTriggersToggle.Value:

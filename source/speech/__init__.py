@@ -757,11 +757,13 @@ def speak(  # noqa: C901
 		elif isinstance(item,str):
 			if not item: continue
 			if autoLanguageSwitching and curLanguage!=prevLanguage:
+				speechSequence.append(ConfigProfileTriggerCommand(LanguageProfileTrigger (curLanguage))°
 				speechSequence.append(LangChangeCommand(curLanguage))
 				prevLanguage=curLanguage
 			speechSequence.append(item)
 		else:
 			speechSequence.append(item)
+	speechSequence.append(ConfigProfileTriggerCommand(LanguageProfileTrigger (curLanguage, False)))
 	if not speechSequence:
 		# After normalisation, the sequence is empty.
 		# There's nothing to speak.
