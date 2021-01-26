@@ -2072,6 +2072,11 @@ def getFormatFieldSpeech(  # noqa: C901
 			textList.append(fontSize)
 	if  formatConfig["reportColor"]:
 		color=attrs.get("color")
+		if color == "mixed":
+			# Translators: Reported when the text has more than one colors.
+			# This occurs when, for example, the text color of a whole spreadsheet cell is requested
+			# and all the characters of the text present in this cell do not have the same color.
+			color = _("Various colors")
 		oldColor=attrsCache.get("color") if attrsCache is not None else None
 		backgroundColor=attrs.get("background-color")
 		oldBackgroundColor=attrsCache.get("background-color") if attrsCache is not None else None

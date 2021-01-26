@@ -1003,7 +1003,10 @@ class ExcelCellTextInfo(NVDAObjectTextInfo):
 				formatField['style']=styleName
 		if formatConfig['reportColor']:
 			try:
-				formatField['color']=colors.RGB.fromCOLORREF(int(fontObj.color))
+				if fontObj.color is None:
+					formatField['color'] = "mixed"
+				else:
+					formatField['color'] = colors.RGB.fromCOLORREF(int(fontObj.color))
 			except COMError:
 				pass
 			try:
