@@ -22,28 +22,38 @@ def writeRedirect(helpId: str, helpFilePath: str, contextHelpPath: str):
 		f.write(redirect)
 
 
-def showHelp(helpId: str):
+def showHelp(helpId: str, addon):
 	"""Display the corresponding section of the user guide when either the Help
 	button in an NVDA dialog is pressed or the F1 key is pressed on a
 	recognized control.
 	"""
-
+	
 	import ui
 	import queueHandler
-	if not helpId:
+	if not helpId and not addon:
 		# Translators: Message indicating no context sensitive help is available for the control or dialog.
 		noHelpMessage = _("No help available here.")
 		queueHandler.queueFunction(queueHandler.eventQueue, ui.message, noHelpMessage)
 		return
-	helpFile = documentationUtils.getDocFilePath("userGuide.html")
-	if helpFile is None:
-		# Translators: Message shown when trying to display context sensitive help,
-		# indicating that	the user guide could not be found.
-		noHelpMessage = _("No user guide found.")
-		log.debugWarning("No user guide found: possible cause - running from source without building user docs")
-		queueHandler.queueFunction(queueHandler.eventQueue, ui.message, noHelpMessage)
-		return
-	log.debug(f"Opening help: helpId = {helpId}, userGuidePath: {helpFile}")
+	if addon is None:
+		helpFile = documentationUtils.getDocFilePath("userGuide.html")
+		if helpFile is None:
+			# Translators: Message shown when trying to display context sensitive help,
+			# indicating that	the user guide could not be found.
+			noHelpMessage = _("No user guide found.")
+			log.debugWarning("No user guide found: possible cause - running from source without building user docs")
+			queueHandler.queueFunction(queueHandler.eventQueue, ui.message, noHelpMessage)
+			return
+	else:
+		helpFile = documentationUtils.getDocFilePath("readme.html", addon=addon)
+		if helpFile is None:
+			# Translators: Message shown when trying to display context sensitive help,
+			# indicating that	the readme of the add-on could not be found.
+			noHelpMessage = _("No documentation found for this add-on.")
+			log.debugWarning(f"No documentation found for {addon} add-on.")
+			queueHandler.queueFunction(queueHandler.eventQueue, ui.message, noHelpMessage)
+			return
+	log.debug(f"Opening help: helpId = {helpId}, helpFilePath: {helpFile}")
 
 	nvdaTempDir = os.path.join(tempfile.gettempdir(), "nvda")
 	if not os.path.exists(nvdaTempDir):
@@ -75,7 +85,11 @@ def bindHelpEvent(helpId: str, window: wx.Window):
 def _onEvtHelp(helpId: str, evt: wx.HelpEvent):
 	# Don't call evt.skip. Events bubble upwards through parent controls.
 	# Context help for more specific controls should override the less specific parent controls.
-	showHelp(helpId)
+	if isinstance(helpId, tuple):
+		helpId, addon = helpId
+	else:
+		addon = None
+	showHelp(helpId, addon)
 
 
 class ContextHelpMixin:
@@ -86,7 +100,7 @@ class ContextHelpMixin:
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		helpId = getattr(self, "helpId", None)
-		if helpId is None or not isinstance(helpId, str):
+		if helpId is None or not isinstance(helpId, (str, tuple)):
 			log.warning(f"No helpId (or incorrect type) for: {self.__class__.__qualname__} helpId: {helpId!r}")
 			helpId = ""
 		window = typing.cast(wx.Window, self)

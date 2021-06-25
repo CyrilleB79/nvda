@@ -11,12 +11,17 @@ import globalVars
 import languageHandler
 
 
-def getDocFilePath(fileName, localized=True):
-	if not getDocFilePath.rootPath:
+def getDocFilePath(fileName, localized=True, addon=None):
+	if not getDocFilePath.rootPath or not getDocFilePath.addonRootPath:
 		if hasattr(sys, "frozen"):
 			getDocFilePath.rootPath = os.path.join(globalVars.appDir, "documentation")
 		else:
 			getDocFilePath.rootPath = os.path.join(globalVars.appDir, "..", "user_docs")
+		getDocFilePath.addonRootPath = os.path.join(globalVars.appArgs.configPath, "addons")
+	if addon is None:
+		rootPath = getDocFilePath.rootPath
+	else:
+		rootPath = os.path.join(getDocFilePath.addonRootPath, addon, 'doc')
 
 	if localized:
 		lang = languageHandler.getLanguage()
@@ -29,7 +34,7 @@ def getDocFilePath(fileName, localized=True):
 
 		fileName, fileExt = os.path.splitext(fileName)
 		for tryLang in tryLangs:
-			tryDir = os.path.join(getDocFilePath.rootPath, tryLang)
+			tryDir = os.path.join(rootPath, tryLang)
 			if not os.path.isdir(tryDir):
 				continue
 
@@ -50,3 +55,4 @@ def getDocFilePath(fileName, localized=True):
 
 
 getDocFilePath.rootPath = None
+getDocFilePath.addonRootPath = None
