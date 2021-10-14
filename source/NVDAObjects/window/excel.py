@@ -57,6 +57,43 @@ xlToRight=-4161
 xlUp=-4162
 xlCellWidthUnitToPixels = 7.5919335705812574139976275207592
 xlSheetVisible=-1
+
+# XlHAlign enumeration (https://docs.microsoft.com/en-us/office/vba/api/excel.xlhalign)
+xlHAlignCenter = -4108
+xlHAlignCenterAcrossSelection = 7
+xlHAlignDistributed = -4117
+xlHAlignFill = 5
+xlHAlignGeneral = 1
+xlHAlignJustify = -4130
+xlHAlignLeft = -4131
+xlHAlignRight = -4152
+
+horizontalAlignmentLabels = {
+	xlHAlignCenter: "center",
+	xlHAlignCenterAcrossSelection: "center-across-selection",
+	xlHAlignDistributed: "distributed",
+	xlHAlignFill: "fill",
+	xlHAlignGeneral: "general",
+	xlHAlignJustify: "justify",
+	xlHAlignLeft: "left",
+	xlHAlignRight: "right",
+}
+
+# XlVAlign enumeration (https://docs.microsoft.com/en-us/office/vba/api/excel.xlvalign)
+xlVAlignBottom = -4107
+xlVAlignCenter = -4108
+xlVAlignDistributed = -4117
+xlVAlignJustify = -4130
+xlVAlignTop = -4160
+
+verticalAlignmentLabels = {
+	xlVAlignBottom: "bottom",
+	xlVAlignCenter: "center",
+	xlVAlignDistributed: "distributed",
+	xlVAlignJustify: "justify",
+	xlVAlignTop: "top",
+}
+
 alignmentLabels={
 	xlCenter:"center",
 	xlJustify:"justify",
@@ -979,10 +1016,10 @@ class ExcelCellTextInfo(NVDAObjectTextInfo):
 			cellObj=self.obj.excelCellObject
 		fontObj=cellObj.font
 		if formatConfig['reportAlignment']:
-			value=alignmentLabels.get(self.obj.excelCellObject.horizontalAlignment)
+			value = horizontalAlignmentLabels.get(self.obj.excelCellObject.horizontalAlignment)
 			if value:
 				formatField['text-align']=value
-			value=alignmentLabels.get(self.obj.excelCellObject.verticalAlignment)
+			value = verticalAlignmentLabels.get(self.obj.excelCellObject.verticalAlignment)
 			if value:
 				formatField['vertical-align']=value
 		if formatConfig['reportFontName']:

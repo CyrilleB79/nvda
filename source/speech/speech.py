@@ -2365,10 +2365,21 @@ def getFormatFieldSpeech(  # noqa: C901
 				# Translators: Reported when text is justified.
 				# See http://en.wikipedia.org/wiki/Typographic_alignment#Justified
 				text=_("align justify")
-			elif textAlign=="distribute":
+			elif textAlign == "distributed":
 				# Translators: Reported when text is justified with character spacing (Japanese etc) 
 				# See http://kohei.us/2010/01/21/distributed-text-justification/
 				text=_("align distributed")
+			elif textAlign == "general":
+				# Translators: Applies to alignment in Excel; reported when the cell content has general alignment,
+				# i.e. text is left aligned but numbers are right aligned.
+				text = _("align general")
+			elif textAlign == "center-across-selection":
+				# Translators: Applies to alignment in Excel; reported when the text is centered over multiple cells.
+				text = _("align centered over multiple cells")
+			elif textAlign == "fill":
+				# Translators: Applies to alignment in Excel; reported when the text is visually repeated to fill
+				# the whole cell width.
+				text = _("align fill the cell")
 			else:
 				# Translators: Reported when text has reverted to default alignment.
 				text=_("align default")
