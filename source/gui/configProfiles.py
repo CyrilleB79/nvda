@@ -12,27 +12,18 @@ import appModuleHandler
 import globalVars
 from . import guiHelper
 import gui.contextHelp
+from .refocusableDialog import RefocusableMixin
 
 
 class ProfilesDialog(
+		RefocusableMixin,
 		gui.contextHelp.ContextHelpMixin,
 		wx.Dialog   # wxPython does not seem to call base class initializer, put last in MRO
 ):
 	shouldSuspendConfigProfileTriggers = True
 	helpId = "ConfigurationProfiles"
 
-	_instance = None
-
-	def __new__(cls, *args, **kwargs):
-		# Make this a singleton.
-		if ProfilesDialog._instance is None:
-			return super(ProfilesDialog, cls).__new__(cls, *args, **kwargs)
-		return ProfilesDialog._instance
-
 	def __init__(self, parent):
-		if ProfilesDialog._instance is not None:
-			return
-		ProfilesDialog._instance = self
 		# Translators: The title of the Configuration Profiles dialog.
 		super().__init__(parent, title=_("Configuration Profiles"))
 
@@ -117,9 +108,6 @@ class ProfilesDialog(
 		self.Sizer = mainSizer
 		self.profileList.SetFocus()
 		self.CentreOnScreen()
-
-	def __del__(self):
-		ProfilesDialog._instance = None
 
 	def getProfileDisplay(self, name, includeStates=False):
 		# Translators: The item to select the user's normal configuration
@@ -291,8 +279,6 @@ class ProfilesDialog(
 		else:
 			config.conf.enableProfileTriggers()
 		self.Destroy()
-		# 7077: Nullify the instance flag, otherwise wxWidgets will think the dialog is active when it is gone.
-		ProfilesDialog._instance = None
 
 	def saveTriggers(self, parentWindow=None):
 		try:
@@ -517,7 +503,6 @@ class NewProfileDialog(
 		# let them get on with editing the profile.
 		parent.Destroy()
 		# Also nullify the instance flag as the profiles dialog itself is dead.
-		ProfilesDialog._instance = None
 
 	def onCancel(self, evt):
 		self.Parent.Enable()

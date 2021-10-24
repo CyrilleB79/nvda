@@ -295,13 +295,8 @@ class MainFrame(wx.Frame):
 		pythonConsole.activate()
 
 	def onAddonsManagerCommand(self,evt):
-		if isInMessageBox:
-			return
-		self.prePopup()
 		from .addonGui import AddonsDialog
-		d=AddonsDialog(gui.mainFrame)
-		d.Show()
-		self.postPopup()
+		self._popupSettingsDialog(AddonsDialog)
 
 	def onReloadPluginsCommand(self, evt):
 		import appModuleHandler, globalPluginHandler
@@ -360,12 +355,8 @@ class MainFrame(wx.Frame):
 		)
 
 	def onConfigProfilesCommand(self, evt):
-		if isInMessageBox:
-			return
-		self.prePopup()
 		from .configProfiles import ProfilesDialog
-		ProfilesDialog(gui.mainFrame).Show()
-		self.postPopup()
+		self._popupSettingsDialog(ProfilesDialog)
 
 class SysTrayIcon(wx.adv.TaskBarIcon):
 

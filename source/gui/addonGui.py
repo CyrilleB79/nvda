@@ -21,6 +21,7 @@ import buildVersion
 from . import guiHelper
 from . import nvdaControls
 from .dpiScalingHelper import DpiScalingHelperMixin, DpiScalingHelperMixinWithoutInit
+from .refocusableDialog import RefocusableMixin
 import gui.contextHelp
 
 
@@ -139,32 +140,14 @@ def _showAddonInfo(addon):
 
 
 class AddonsDialog(
+		RefocusableMixin,
 		DpiScalingHelperMixinWithoutInit,
 		gui.contextHelp.ContextHelpMixin,
 		wx.Dialog  # wxPython does not seem to call base class initializer, put last in MRO
 ):
-	@classmethod
-	def _instance(cls):
-		""" type: () -> AddonsDialog
-		return None until this is replaced with a weakref.ref object. Then the instance is retrieved
-		with by treating that object as a callable.
-		"""
-		return None
-
 	helpId = "AddonsManager"
 
-	def __new__(cls, *args, **kwargs):
-		instance = AddonsDialog._instance()
-		if instance is None:
-			return super(AddonsDialog, cls).__new__(cls, *args, **kwargs)
-		return instance
-
 	def __init__(self, parent):
-		if AddonsDialog._instance() is not None:
-			return
-		# #7077: _instance must not be kept alive once the dialog is closed or there can be issues
-		# when add-ons manager reopens or another add-on is installed remotely.
-		AddonsDialog._instance = weakref.ref(self)
 		# Translators: The title of the Addons Dialog
 		title = _("Add-ons Manager")
 		# Translators: The title of the Addons Dialog when add-ons are disabled

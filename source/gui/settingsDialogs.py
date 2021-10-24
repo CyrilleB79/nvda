@@ -13,7 +13,6 @@ import logging
 from abc import ABCMeta, abstractmethod
 import copy
 import os
-from enum import IntEnum
 
 import typing
 import wx
@@ -61,103 +60,39 @@ import weakref
 import time
 import keyLabels
 from .dpiScalingHelper import DpiScalingHelperMixinWithoutInit
+from .refocusableDialog import RefocusableMixin
 
 #: The size that settings panel text descriptions should be wrapped at.
 # Ensure self.scaleSize is used to adjust for OS scaling adjustments.
 PANEL_DESCRIPTION_WIDTH = 544
 
+
 class SettingsDialog(
+		RefocusableMixin,
 		DpiScalingHelperMixinWithoutInit,
 		gui.contextHelp.ContextHelpMixin,
 		wx.Dialog,  # wxPython does not seem to call base class initializer, put last in MRO
 		metaclass=guiHelper.SIPABCMeta
 ):
 	"""A settings dialog.
-	A settings dialog consists of one or more settings controls and OK and Cancel buttons and an optional Apply button.
-	Action may be taken in response to the OK, Cancel or Apply buttons.
+	A settings dialog consists of one or more settings controls and OK and Cancel buttons and an optional Apply
+	button. Action may be taken in response to the OK, Cancel or Apply buttons.
 
 	To use this dialog:
 		* Set L{title} to the title of the dialog.
 		* Override L{makeSettings} to populate a given sizer with the settings controls.
-		* Optionally, override L{postInit} to perform actions after the dialog is created, such as setting the focus. Be
-			aware that L{postInit} is also called by L{onApply}.
+		* Optionally, override L{postInit} to perform actions after the dialog is created, such as setting the
+			focus. Be aware that L{postInit} is also called by L{onApply}.
 		* Optionally, extend one or more of L{onOk}, L{onCancel} or L{onApply} to perform actions in response to the
 			OK, Cancel or Apply buttons, respectively.
 
 	@ivar title: The title of the dialog.
 	@type title: str
 	"""
-
-	class MultiInstanceError(RuntimeError): pass
-
-	class MultiInstanceErrorWithDialog(MultiInstanceError):
-		dialog: 'SettingsDialog'
-
-		def __init__(self, dialog: 'SettingsDialog', *args: object) -> None:
-			self.dialog = dialog
-			super().__init__(*args)
-
-	class DialogState(IntEnum):
-		CREATED = 0
-		DESTROYED = 1
-
-	# holds instances of SettingsDialogs as keys, and state as the value
-	_instances = weakref.WeakKeyDictionary()
-	title = ""
+	
 	helpId = "NVDASettings"
 	shouldSuspendConfigProfileTriggers = True
-
-	def __new__(cls, *args, **kwargs):
-		# We are iterating over instanceItems only once, so it can safely be an iterator.
-		instanceItems = SettingsDialog._instances.items()
-		instancesOfSameClass = (
-			(dlg, state) for dlg, state in instanceItems if isinstance(dlg, cls)
-		)
-		firstMatchingInstance, state = next(instancesOfSameClass, (None, None))
-		multiInstanceAllowed = kwargs.get('multiInstanceAllowed', False)
-		if log.isEnabledFor(log.DEBUG):
-			instancesState = dict(SettingsDialog._instances)
-			log.debug(
-				"Creating new settings dialog (multiInstanceAllowed:{}). "
-				"State of _instances {!r}".format(multiInstanceAllowed, instancesState)
-			)
-		if state is cls.DialogState.CREATED and not multiInstanceAllowed:
-			raise SettingsDialog.MultiInstanceErrorWithDialog(
-				firstMatchingInstance,
-				"Only one instance of SettingsDialog can exist at a time",
-			)
-		if state is cls.DialogState.DESTROYED and not multiInstanceAllowed:
-			# the dialog has been destroyed by wx, but the instance is still available. This indicates there is something
-			# keeping it alive.
-			log.error("Opening new settings dialog while instance still exists: {!r}".format(firstMatchingInstance))
-		obj = super(SettingsDialog, cls).__new__(cls, *args, **kwargs)
-		SettingsDialog._instances[obj] = cls.DialogState.CREATED
-		return obj
-
-	def _setInstanceDestroyedState(self):
-		# prevent race condition with object deletion
-		# prevent deletion of the object while we work on it.
-		nonWeak: typing.Dict[SettingsDialog, SettingsDialog.DialogState] = dict(SettingsDialog._instances)
-
-		if (
-			self in SettingsDialog._instances
-			# Because destroy handlers are use evt.skip, _setInstanceDestroyedState may be called many times
-			# prevent noisy logging.
-			and self.DialogState.DESTROYED != SettingsDialog._instances[self]
-		):
-			if log.isEnabledFor(log.DEBUG):
-				instanceStatesGen = (
-					f"{instance.title} - {state.name}"
-					for instance, state in nonWeak.items()
-				)
-				instancesList = list(instanceStatesGen)
-				log.debug(
-					f"Setting state to destroyed for instance: {self.title} - {self.__class__.__qualname__} - {self}\n"
-					f"Current _instances {instancesList}"
-				)
-			SettingsDialog._instances[self] = self.DialogState.DESTROYED
-
-
+	
 	def __init__(
 			self, parent,
 			resizeable=False,
