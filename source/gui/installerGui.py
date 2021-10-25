@@ -18,6 +18,7 @@ import gui
 from gui import guiHelper
 import gui.contextHelp
 from gui.dpiScalingHelper import DpiScalingHelperMixinWithoutInit
+from .refocusableDialog import RefocusableMixin
 import systemUtils
 
 
@@ -343,6 +344,7 @@ def showInstallGui():
 
 
 class PortableCreaterDialog(
+		RefocusableMixin,
 		gui.contextHelp.ContextHelpMixin,
 		wx.Dialog,  # wxPython does not seem to call base class initializer, put last in MRO
 ):

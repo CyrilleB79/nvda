@@ -306,13 +306,8 @@ class MainFrame(wx.Frame):
 		NVDAObject.clearDynamicClassCache()
 
 	def onCreatePortableCopyCommand(self,evt):
-		if isInMessageBox:
-			return
-		self.prePopup()
 		import gui.installerGui
-		d=gui.installerGui.PortableCreaterDialog(gui.mainFrame)
-		d.Show()
-		self.postPopup()
+		self._popupSettingsDialog(gui.installerGui.PortableCreaterDialog)
 
 	def onInstallCommand(self, evt):
 		if isInMessageBox:
