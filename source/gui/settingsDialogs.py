@@ -278,6 +278,21 @@ class SettingsDialog(
 	def _onWindowDestroy(self, evt):
 		evt.Skip()
 		self._setInstanceDestroyedState()
+	
+	def activateDialog(self):
+		childrenDialogs = [d for d in self.Children if isinstance(d, wx.Dialog)]
+		if not childrenDialogs:
+			self.SetFocus()
+			from tones import beep
+			beep(100, 100)
+			return True
+		childDialog = childrenDialogs[0]
+		try:
+			childDialog.activateDialog()
+		except AttributeError:
+			childDialog.SetFocus()
+		return False
+
 
 # An event and event binder that will notify the containers that they should
 # redo the layout in whatever way makes sense for their particular content.

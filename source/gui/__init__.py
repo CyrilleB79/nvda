@@ -164,8 +164,12 @@ class MainFrame(wx.Frame):
 		try:
 			dialog(self, *args, **kwargs).Show()
 		except SettingsDialog.MultiInstanceErrorWithDialog as errorWithDialog:
-			errorWithDialog.dialog.SetFocus()
-			if isinstance(errorWithDialog.dialog, MultiCategorySettingsDialog) and len(args) > 0:
+			try:
+				activated = errorWithDialog.dialog.activateDialog()
+			except AttributeError:
+				errorWithDialog.dialog.SetFocus()
+				activated = True
+			if activated and isinstance(errorWithDialog.dialog, MultiCategorySettingsDialog) and len(args) > 0:
 				errorWithDialog.dialog.selectNewCategory(args[0])
 		except MultiCategorySettingsDialog.CategoryUnavailableError:
 			# Translators: Message shown when trying to open an unavailable category of a multi category settings dialog
