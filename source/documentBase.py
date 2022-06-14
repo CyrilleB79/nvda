@@ -277,6 +277,8 @@ class DocumentWithTableNavigation(TextContainerObject,ScriptableObject):
 			else:
 				destRow = nRows
 		try:
+			from logHandler import log
+			log.debug(f'destRow={destRow}; destCol={destCol}')
 			return self._getTableCellAt(tableID, startPos, destRow, destCol)
 		except LookupError:
 			oppositeMovement = _Movement.PREVIOUS if movement == _Movement.LAST else _Movement.NEXT

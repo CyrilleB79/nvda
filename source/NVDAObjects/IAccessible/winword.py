@@ -24,9 +24,11 @@ from NVDAObjects.window.winword import *
 from NVDAObjects.window.winword import WordDocumentTreeInterceptor
 from speech import sayAll
 
+import operator
+
 
 class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocument):
- 
+
 	treeInterceptorClass=WordDocumentTreeInterceptor
 	shouldCreateTreeInterceptor=False
 	TextInfo=WordDocumentTextInfo
@@ -297,7 +299,7 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 	# Translators: a description for a script
 	script_reportCurrentComment.__doc__=_("Reports the text of the comment where the System caret is located.")
 
-	def _moveInTable(self,row=True,forward=True):
+	def _moveInTable(self,row=True,forward=True, toEdge=False):
 		info=self.makeTextInfo(textInfos.POSITION_CARET)
 		info.expand(textInfos.UNIT_CHARACTER)
 		formatConfig=config.conf['documentFormatting'].copy()
@@ -318,6 +320,19 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 			log.debugWarning("Could not get MS Word table object indicated in XML")
 			ui.message(_("Not in table"))
 			return False
+		####zzz
+		foundCell = self._moveFromTableCell(table, rowNumber, columnNumber, rowCount, columnCount, row, forward)
+		if foundCell is None:
+			return
+		newInfo=WordDocumentTextInfo(self,textInfos.POSITION_CARET,_rangeObj=foundCell)
+		speech.speakTextInfo(newInfo, reason=controlTypes.OutputReason.CARET, unit=textInfos.UNIT_CELL)
+		newInfo.collapse()
+		newInfo.updateCaret()
+		return True
+		
+	def _moveFromTableCell(self, table, startRow, startCol, rowCount, columnCount, row=True, forward=True):
+		rowNumber = startRow
+		columnNumber = startCol
 		_cell=table.cell
 		getCell=lambda thisIndex,otherIndex: _cell(thisIndex,otherIndex) if row else _cell(otherIndex,thisIndex)
 		thisIndex=rowNumber if row else columnNumber
@@ -340,12 +355,8 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 			curOtherIndex-=1
 		if not foundCell:
 			ui.message(_("Edge of table"))
-			return False
-		newInfo=WordDocumentTextInfo(self,textInfos.POSITION_CARET,_rangeObj=foundCell)
-		speech.speakTextInfo(newInfo, reason=controlTypes.OutputReason.CARET, unit=textInfos.UNIT_CELL)
-		newInfo.collapse()
-		newInfo.updateCaret()
-		return True
+			return None
+		return foundCell		
 
 	def script_nextRow(self,gesture):
 		self._moveInTable(row=True,forward=True)

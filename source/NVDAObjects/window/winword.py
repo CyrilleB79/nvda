@@ -15,7 +15,6 @@ from comtypes import COMError, GUID, BSTR
 import comtypes.client
 import comtypes.automation
 import uuid
-import operator
 import locale
 import collections
 import colorsys
