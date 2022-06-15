@@ -314,6 +314,8 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 		columnCount=commandList[1].field.get('table-columncount',1)
 		rowNumber=commandList[2].field.get('table-rownumber',1)
 		columnNumber=commandList[2].field.get('table-columnnumber',1)
+		msg = f"Row {rowNumber}, col {columnNumber} in a table with {rowCount} rows and {columnCount} columns."
+		ui.message(msg)
 		try:
 			table=info._rangeObj.tables[1]
 		except COMError:
@@ -321,7 +323,10 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 			ui.message(_("Not in table"))
 			return False
 		####zzz
-		foundCell = self._moveFromTableCell(table, rowNumber, columnNumber, rowCount, columnCount, row, forward)
+		if toEdge:
+			foundCell = self._moveToEdgeCell(table, rowNumber, columnNumber, rowCount, columnCount, row, forward)
+		else:
+			foundCell = self._moveOneCell(table, rowNumber, columnNumber, rowCount, columnCount, row, forward)
 		if foundCell is None:
 			return
 		newInfo=WordDocumentTextInfo(self,textInfos.POSITION_CARET,_rangeObj=foundCell)
@@ -329,14 +334,12 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 		newInfo.collapse()
 		newInfo.updateCaret()
 		return True
-		
-	def _moveFromTableCell(self, table, startRow, startCol, rowCount, columnCount, row=True, forward=True):
-		rowNumber = startRow
-		columnNumber = startCol
+
+	def _moveOneCell(self, table, startRow, startCol, rowCount, columnCount, row=True, forward=True):
 		_cell=table.cell
 		getCell=lambda thisIndex,otherIndex: _cell(thisIndex,otherIndex) if row else _cell(otherIndex,thisIndex)
-		thisIndex=rowNumber if row else columnNumber
-		otherIndex=columnNumber if row else rowNumber
+		thisIndex = startRow if row else startCol
+		otherIndex = startCol if row else startRow
 		thisLimit=(rowCount if row else columnCount) if forward else 1
 		limitOp=operator.le if forward else operator.ge
 		incdecFunc=operator.add if forward else operator.sub
@@ -345,6 +348,34 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 		while curOtherIndex>0:
 			curThisIndex=incdecFunc(thisIndex,1)
 			while limitOp(curThisIndex,thisLimit):
+				try:
+					foundCell=getCell(curThisIndex,curOtherIndex).range
+				except COMError:
+					pass
+				if foundCell: break
+				curThisIndex=incdecFunc(curThisIndex,1)
+			if foundCell: break
+			curOtherIndex-=1
+		if not foundCell:
+			ui.message(_("Edge of table"))
+			return None
+		return foundCell
+		
+	def _moveToEdgeCell(self, table, startRow, startCol, rowCount, columnCount, row=True, forward=True):
+		_cell=table.cell
+		getCell=lambda thisIndex,otherIndex: _cell(thisIndex,otherIndex) if row else _cell(otherIndex,thisIndex)
+		thisIndex = startRow if row else startCol
+		otherIndex = startCol if row else startRow
+		thisLimit=(rowCount if row else columnCount) if forward else 1
+		limitOp=operator.le if forward else operator.ge
+		incdecFunc=operator.add if forward else operator.sub
+		foundCell=None
+		curOtherIndex=otherIndex
+		#zzz while curOtherIndex>0:
+		for zzz in range(1):
+			curThisIndex=thisLimit
+			#zzz while limitOp(curThisIndex,thisLimit):
+			for zzzz in range(1):
 				try:
 					foundCell=getCell(curThisIndex,curOtherIndex).range
 				except COMError:
@@ -369,6 +400,30 @@ class WordDocument(IAccessible,EditableTextWithoutAutoSelectDetection,WordDocume
 
 	def script_previousColumn(self,gesture):
 		self._moveInTable(row=False,forward=False)
+
+	@scriptHandler.script(
+		gesture="kb:control+alt+pageDown",
+	)
+	def script_lastRow(self,gesture):
+		self._moveInTable(row=True,forward=True, toEdge=True)
+	
+	@scriptHandler.script(
+		gesture="kb:control+alt+pageUp",
+	)
+	def script_firstRow(self, gesture):
+		self._moveInTable(row=True, forward=False, toEdge=True)
+
+	@scriptHandler.script(
+		gesture="kb:control+alt+end",
+	)
+	def script_lastColumn(self, gesture):
+		self._moveInTable(row=False, forward=True, toEdge=True)
+		
+	@scriptHandler.script(
+		gesture="kb:control+alt+home",
+	)
+	def script_firstColumn(self, gesture):
+		self._moveInTable(row=False, forward=False, toEdge=True)		
 
 	def script_nextParagraph(self,gesture):
 		info=self.makeTextInfo(textInfos.POSITION_CARET)
