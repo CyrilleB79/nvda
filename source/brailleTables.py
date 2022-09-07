@@ -302,6 +302,9 @@ addTable("hu-hu-g1.ctb", _("Hungarian grade 1"))
 addTable("hu-hu-g2.ctb", _("Hungarian grade 2"), contracted=True)
 # Translators: The name of a braille table displayed in the
 # braille settings dialog.
+addTable("IPA.utb", _("International Phonetic Alphabet"))
+# Translators: The name of a braille table displayed in the
+# braille settings dialog.
 addTable("is.ctb", _("Icelandic 8 dot computer braille"))
 # Translators: The name of a braille table displayed in the
 # braille settings dialog.
