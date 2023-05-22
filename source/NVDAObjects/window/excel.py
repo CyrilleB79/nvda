@@ -659,9 +659,13 @@ class ExcelBase(Window):
 
 	def _getActiveCell(self):
 		cell = self.excelWindowObject.ActiveCell
-		obj = ExcelCell(windowHandle=self.windowHandle, excelWindowObject=self.excelWindowObject, excelCellObject=cell)
+		obj = ExcelCell(
+			windowHandle=self.windowHandle,
+			excelWindowObject=self.excelWindowObject,
+			excelCellObject=cell,
+		)
 		return obj
-		
+
 	def _getSelection(self):
 		selection=self.excelWindowObject.Selection
 		try:
@@ -908,66 +912,76 @@ class ExcelWorksheet(ExcelBase):
 			states.add(controlTypes.State.PROTECTED)
 		return states
 
-	@scriptHandler.script(gestures=(
-		"kb:tab",
-		"kb:shift+tab",
-		"kb:enter",
-		"kb:numpadEnter",
-		"kb:shift+enter",
-		"kb:shift+numpadEnter",
-	), canPropagate=True)
-	def script_changeActiveCell(self,gesture):
-		oldObjGetter = newObjGetter = lambda: self._getActiveCell()
-		self.changeSelectionOrActiveCell(gesture, oldObjGetter, newObjGetter)
+	@scriptHandler.script(
+		gestures=(
+			"kb:tab",
+			"kb:shift+tab",
+			"kb:enter",
+			"kb:numpadEnter",
+			"kb:shift+enter",
+			"kb:shift+numpadEnter",
+		),
+		canPropagate=True,
+	)
+	def script_changeActiveCell(self, gesture):
+		self.changeSelectionOrActiveCell(
+			gesture=gesture,
+			oldObjGetter=self._getActiveCell,
+			newObjGetter=self._getActiveCell,
+		)
 
-	@scriptHandler.script(gestures=(
-		"kb:upArrow",
-		"kb:downArrow",
-		"kb:leftArrow",
-		"kb:rightArrow",
-		"kb:control+upArrow",
-		"kb:control+downArrow",
-		"kb:control+leftArrow",
-		"kb:control+rightArrow",
-		"kb:home",
-		"kb:end",
-		"kb:control+home",
-		"kb:control+end",
-		"kb:shift+upArrow",
-		"kb:shift+downArrow",
-		"kb:shift+leftArrow",
-		"kb:shift+rightArrow",
-		"kb:shift+control+upArrow",
-		"kb:shift+control+downArrow",
-		"kb:shift+control+leftArrow",
-		"kb:shift+control+rightArrow",
-		"kb:shift+home",
-		"kb:shift+end",
-		"kb:shift+control+home",
-		"kb:shift+control+end",
-		"kb:shift+space",
-		"kb:control+space",
-		"kb:pageUp",
-		"kb:pageDown",
-		"kb:shift+pageUp",
-		"kb:shift+pageDown",
-		"kb:alt+pageUp",
-		"kb:alt+pageDown",
-		"kb:alt+shift+pageUp",
-		"kb:alt+shift+pageDown",
-		"kb:control+shift+8",
-		"kb:control+pageUp",
-		"kb:control+pageDown",
-		"kb:control+a",
-		"kb:control+v",
-		"kb:shift+f11",
-	), canPropagate=True)
-
+	@scriptHandler.script(
+		gestures=(
+			"kb:upArrow",
+			"kb:downArrow",
+			"kb:leftArrow",
+			"kb:rightArrow",
+			"kb:control+upArrow",
+			"kb:control+downArrow",
+			"kb:control+leftArrow",
+			"kb:control+rightArrow",
+			"kb:home",
+			"kb:end",
+			"kb:control+home",
+			"kb:control+end",
+			"kb:shift+upArrow",
+			"kb:shift+downArrow",
+			"kb:shift+leftArrow",
+			"kb:shift+rightArrow",
+			"kb:shift+control+upArrow",
+			"kb:shift+control+downArrow",
+			"kb:shift+control+leftArrow",
+			"kb:shift+control+rightArrow",
+			"kb:shift+home",
+			"kb:shift+end",
+			"kb:shift+control+home",
+			"kb:shift+control+end",
+			"kb:shift+space",
+			"kb:control+space",
+			"kb:pageUp",
+			"kb:pageDown",
+			"kb:shift+pageUp",
+			"kb:shift+pageDown",
+			"kb:alt+pageUp",
+			"kb:alt+pageDown",
+			"kb:alt+shift+pageUp",
+			"kb:alt+shift+pageDown",
+			"kb:control+shift+8",
+			"kb:control+pageUp",
+			"kb:control+pageDown",
+			"kb:control+a",
+			"kb:control+v",
+			"kb:shift+f11",
+		),
+		canPropagate=True,
+	)
 	def script_changeSelection(self,gesture):
-		oldObjGetter = lambda: api.getFocusObject()
-		newObjGetter = lambda: self._getSelection()
-		self.changeSelectionOrActiveCell(gesture, oldObjGetter, newObjGetter)
-	
+		self.changeSelectionOrActiveCell(
+			gesture=gesture,
+			oldObjGetter=api.getFocusObject,
+			newObjGetter=self._getSelection,
+		)
+
 	def changeSelectionOrActiveCell(self, gesture, oldObjGetter, newObjGetter):
 		oldSelection = oldObjGetter()
 		gesture.send()
