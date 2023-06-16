@@ -2625,6 +2625,8 @@ class UwpOcrPanel(SettingsPanel):
 		# Lazily import this.
 		from contentRecog import uwpOcr
 		self.languageCodes = uwpOcr.getLanguages()
+		self.languageCodes.append("zh-Hans-CN")
+		self.languageCodes.append("zzz_XY")
 		languageChoices = []
 		for lang in self.languageCodes:
 			normLang = languageHandler.normalizeLanguage(lang)
