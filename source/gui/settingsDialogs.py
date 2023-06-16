@@ -2625,9 +2625,15 @@ class UwpOcrPanel(SettingsPanel):
 		# Lazily import this.
 		from contentRecog import uwpOcr
 		self.languageCodes = uwpOcr.getLanguages()
-		languageChoices = [
-			languageHandler.getLanguageDescription(languageHandler.normalizeLanguage(lang))
-			for lang in self.languageCodes]
+		languageChoices = []
+		for lang in self.languageCodes:
+			normLang = languageHandler.normalizeLanguage(lang)
+			desc = languageHandler.getLanguageDescription(normLang)
+			if not desc:
+				# Raise an error in the hope that people be more likely to report the issue
+				log.error(f'No description for language: {normLang}. Using language code instead.', stack_info=True)
+				desc = normLang
+			languageChoices.append(desc)
 		# Translators: Label for an option in the Windows OCR dialog.
 		languageLabel = _("Recognition &language:")
 		self.languageChoice = sHelper.addLabeledControl(languageLabel, wx.Choice, choices=languageChoices)
