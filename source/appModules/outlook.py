@@ -1,6 +1,6 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2021 NV Access Limited, Yogesh Kumar, Manish Agrawal, Joseph Lee, Davy Kager,
-# Babbage B.V., Leonard de Ruijter
+# Copyright (C) 2006-2023 NV Access Limited, Yogesh Kumar, Manish Agrawal, Joseph Lee, Davy Kager,
+# Babbage B.V., Leonard de Ruijter, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -86,7 +86,7 @@ def getReceivedMessageString(obj):
 		text="%s %s"%(_("unread"),text)
 	if obj.attachments.count>0:
 		# Translators: This is presented in outlook or live mail, indicating email attachments
-		text="%s %s"%(_("attachment"),text)
+		text="%s %s"%(text, _("attachment"))
 	return text
 
 def getSentMessageString(obj):
@@ -436,6 +436,40 @@ class UIAGridRow(RowWithFakeNavigation,UIA):
 	rowHeaderText=None
 	columnHeaderText=None
 
+	
+	@staticmethod
+	def hasAttachments(selection):
+		try:
+			attachments = selection.attachments
+		except COMError:
+			return False
+		htmlBody = None
+		for attachment in selection.attachments:
+			# Idea from
+			# https://www.datanumen.com/fr/blogs/quickly-convert-embedded-images-attachments-outlook-email/
+			# But looking at "@" in the attachment name was not enough
+			propAccessor = attachment.PropertyAccessor
+			prop = propAccessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001E")
+			if not prop:
+				ui.message('PJ no prop zzz')
+				return True
+			# Idea to look at body from
+			# https://stackoverflow.com/questions/11735352/send-email-with-embedded-image-without-using-wordeditor
+			if not htmlBody:
+				try:
+					htmlBody = selection.HTMLBody
+				except COMError:
+					continue
+			# zzz The following "if" condition does not always work
+			# since sometimes, there is an image in the attachments named like "image003@1a2b3c4d5e6f789"
+			# but that is not in the body despite its name,
+			# and the message in the GUI does not show any attachment.
+			if 'src="cid:{}"'.format(prop) in htmlBody:
+				continue
+			ui.message('PJ prop not in body zzz')
+			return True
+		return False
+
 	def _get_name(self):
 		textList=[]
 		if controlTypes.State.EXPANDED in self.states:
@@ -472,12 +506,8 @@ class UIAGridRow(RowWithFakeNavigation,UIA):
 					verbLabel=executedVerbLabels.get(v.value,None)
 					if verbLabel:
 						textList.append(verbLabel)
-			try:
-				attachmentCount=selection.attachments.count
-			except COMError:
-				attachmentCount=0
 			# Translators: when an email has attachments
-			if attachmentCount>0: textList.append(_("has attachment"))
+			if self.hasAttachments(selection): textList.append(_("has attachment"))
 			try:
 				importance=selection.importance
 			except COMError:
