@@ -30,8 +30,8 @@ except AttributeError:
 	GhostWindowFromHungWindow=None
 
 def isUsableWindow(windowHandle):
-	if not ctypes.windll.user32.IsWindowEnabled(windowHandle):
-		return False
+	#zzz if not ctypes.windll.user32.IsWindowEnabled(windowHandle):
+	#zzz 	return False
 	if not ctypes.windll.user32.IsWindowVisible(windowHandle):
 		return False
 	if GhostWindowFromHungWindow and ctypes.windll.user32.GhostWindowFromHungWindow(windowHandle):
