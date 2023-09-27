@@ -11,6 +11,7 @@
 
 from typing import Optional
 from baseObject import AutoPropertyObject
+from utils.z import removeAccelerator
 
 
 class DriverSetting(AutoPropertyObject):
@@ -59,8 +60,7 @@ class DriverSetting(AutoPropertyObject):
 		self.id = id
 		self.displayNameWithAccelerator = displayNameWithAccelerator
 		if not displayName:
-			# Strip accelerator from displayNameWithAccelerator.
-			displayName = displayNameWithAccelerator.replace("&", "")
+			displayName = removeAccelerator(displayNameWithAccelerator)
 		self.displayName = displayName
 		self.availableInSettingsRing = availableInSettingsRing
 		self.defaultVal = defaultVal

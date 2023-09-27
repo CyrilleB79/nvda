@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2019 NV Access Limited, Robert Hänggi, Łukasz Golonka
+# Copyright (C) 2006-2023 NV Access Limited, Robert Hänggi, Łukasz Golonka, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
 import appModuleHandler
 import controlTypes
+from utils.z import removeAccelerator
+
 
 class AppModule(appModuleHandler.AppModule):
 
@@ -15,4 +17,4 @@ class AppModule(appModuleHandler.AppModule):
 			and obj.role not in [controlTypes.Role.MENUBAR, controlTypes.Role.MENUITEM, controlTypes.Role.POPUPMENU]
 			and obj.name is not None
 		):
-			obj.name=obj.name.replace('&','')
+			obj.name = removeAccelerator(obj.name)

@@ -15,6 +15,7 @@ import gui
 import gui.contextHelp
 from logHandler import log
 import speechDictHandler
+from utils.z import removeAccelerator
 
 from . import guiHelper
 from .settingsDialogs import SettingsDialog
@@ -151,7 +152,7 @@ class DictionaryDialog(
 	To use this dialog, override L{__init__} calling super().__init__.
 	"""
 	
-	TYPE_LABELS = {t: l.replace("&", "") for t, l in DictionaryEntryDialog.TYPE_LABELS.items()}
+	TYPE_LABELS = {t: removeAccelerator(l) for t, l in DictionaryEntryDialog.TYPE_LABELS.items()}
 	helpId = "SpeechDictionaries"
 
 	@abstractmethod
