@@ -42,7 +42,26 @@ For more details, see `tests/lint/readme.md`
 Unit tests can be run with the `rununittests.bat` script.
 Internally this script uses the Nose Python test framework to execute the tests.
 Any arguments given to `rununittests.bat` are forwarded onto Nose.
-Please refer to Nose's own documentation on how to filter tests etc.
+
+For example:
+1. Run all unit tests
+   ```cmd
+   rununittests.bat 
+   ```
+1. Run only a specific test module
+   ```cmd
+   rununittests.bat test_speech.py
+   ```
+1. Run a specific test case
+   ```cmd
+   rununittests.bat test_speech.py:Test_getSpellingSpeechAddCharMode
+   ```
+1. Run only a specific test method
+   ```cmd
+   rununittests.bat test_speech.py:Test_getSpellingSpeechAddCharMode.test_symbolNamesAtStartAndEnd
+   ```
+
+Please refer to Nose's own documentation for more details and options.
 
 ### System Tests
 System tests can be run with the `runsystemtests.bat --include <TAG>` script.
