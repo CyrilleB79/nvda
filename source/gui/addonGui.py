@@ -520,7 +520,7 @@ def installAddon(parentWindow: wx.Window, addonPath: str) -> bool:  # noqa: C901
 		return False  # Exit early, addon does not have required support
 	elif bundle.canOverrideCompatibility:
 		from gui._addonStoreGui.controls.messageDialogs import _shouldInstallWhenAddonTooOldDialog
-		if _shouldInstallWhenAddonTooOldDialog(parentWindow, bundle._addonGuiModel):
+		if _shouldInstallWhenAddonTooOldDialog(parentWindow, bundle):
 			# Install incompatible version
 			if not bundle.overrideIncompatibility:
 				bundle.enableCompatibilityOverride()
@@ -649,7 +649,7 @@ def _showAddonRequiresNVDAUpdateDialog(
 		title=_("Add-on not compatible"),
 		message=incompatibleMessage,
 		showAddonInfoFunction=lambda: _showAddonInfo(bundle._addonGuiModel),
-		showAddonDocFunction=(lambda: _showAddonDoc(bundle._addonGuiModel, docPath)) if docPath else None,
+		showAddonDocFunction=(lambda: _showAddonDoc(bundle, docPath)) if docPath else None,
 	))
 
 
@@ -672,7 +672,7 @@ def _showConfirmAddonInstallDialog(
 		title=_("Add-on Installation"),
 		message=confirmInstallMessage,
 		showAddonInfoFunction=lambda: _showAddonInfo(bundle._addonGuiModel),
-		showAddonDocFunction=(lambda: _showAddonDoc(bundle._addonGuiModel, docPath)) if docPath else None,
+		showAddonDocFunction=(lambda: _showAddonDoc(bundle, docPath)) if docPath else None,
 	))
 
 

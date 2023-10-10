@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2023 NV Access Limited
+# Copyright (C) 2023 NV Access Limited, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -28,6 +28,7 @@ from gui.message import displayDialogAsModal, messageBox
 import windowUtils
 
 if TYPE_CHECKING:
+	from addonHandler import AddonBundle
 	from _addonStore.models.version import SupportsVersionCheck
 
 
@@ -40,6 +41,17 @@ class ErrorAddonInstallDialogWithYesNoButtons(ErrorAddonInstallDialog):
 			label=pgettext("addonStore", "&About add-on...")
 		)
 		addonInfoButton.Bind(wx.EVT_BUTTON, lambda evt: self._showAddonInfoFunction())
+
+		addonDocButton = buttonHelper.addButton(
+			self,
+			# Translators: A button in the addon installation warning / blocked dialog which shows
+			# the documentation of the addon
+			label=_("&Documentation...")
+		)
+		if self._showAddonDocFunction:
+			addonDocButton.Bind(wx.EVT_BUTTON, lambda evt: self._showAddonDocFunction())
+		else:
+			addonDocButton.Disable()
 
 		yesButton = buttonHelper.addButton(
 			self,
@@ -61,8 +73,9 @@ class ErrorAddonInstallDialogWithYesNoButtons(ErrorAddonInstallDialog):
 
 def _shouldProceedWhenInstalledAddonVersionUnknown(
 		parent: wx.Window,
-		addon: _AddonGUIModel
+		bundle: AddonBundle,
 ) -> bool:
+	addon: _AddonGUIModel = bundle._addonGuiModel
 	# an installed add-on should have an addon Handler Model
 	assert addon._addonHandlerModel
 	incompatibleMessage = pgettext(
@@ -81,12 +94,15 @@ def _shouldProceedWhenInstalledAddonVersionUnknown(
 	lastTestedNVDAVersion=addonAPIVersion.formatForGUI(addon.lastTestedNVDAVersion),
 	NVDAVersion=addonAPIVersion.formatForGUI(addonAPIVersion.CURRENT)
 	)
+	from gui.addonGui import _showAddonDoc
+	docPath = bundle.getDocFilePathInBundle()
 	res = displayDialogAsModal(ErrorAddonInstallDialogWithYesNoButtons(
 		parent=parent,
 		# Translators: The title of a dialog presented when an error occurs.
 		title=pgettext("addonStore", "Add-on not compatible"),
 		message=incompatibleMessage,
-		showAddonInfoFunction=lambda: _showAddonInfo(addon)
+		showAddonInfoFunction=lambda: _showAddonInfo(addon),
+		showAddonDocFunction=(lambda: _showAddonDoc(bundle, docPath)) if docPath else None,
 	))
 	return res == wx.YES
 
@@ -110,8 +126,11 @@ def _shouldProceedToRemoveAddonDialog(
 
 def _shouldInstallWhenAddonTooOldDialog(
 		parent: wx.Window,
-		addon: _AddonGUIModel
+		bundle: AddonBundle,
 ) -> bool:
+	import globalVars as gv
+	gv.dbg = bundle
+	addon: _AddonGUIModel = bundle._addonGuiModel
 	incompatibleMessage = pgettext(
 		"addonStore",
 		# Translators: The message displayed when installing an add-on package that is incompatible
@@ -128,20 +147,24 @@ def _shouldInstallWhenAddonTooOldDialog(
 	lastTestedNVDAVersion=addonAPIVersion.formatForGUI(addon.lastTestedNVDAVersion),
 	NVDAVersion=addonAPIVersion.formatForGUI(addonAPIVersion.CURRENT)
 	)
+	from gui.addonGui import _showAddonDoc
+	docPath = bundle.getDocFilePathInBundle()
 	res = displayDialogAsModal(ErrorAddonInstallDialogWithYesNoButtons(
 		parent=parent,
 		# Translators: The title of a dialog presented when an error occurs.
 		title=pgettext("addonStore", "Add-on not compatible"),
 		message=incompatibleMessage,
-		showAddonInfoFunction=lambda: _showAddonInfo(addon)
+		showAddonInfoFunction=lambda: _showAddonInfo(addon),
+		showAddonDocFunction=(lambda: _showAddonDoc(bundle, docPath)) if docPath else None,
 	))
 	return res == wx.YES
 
 
 def _shouldEnableWhenAddonTooOldDialog(
 		parent: wx.Window,
-		addon: _AddonGUIModel
+		bundle: AddonBundle,
 ) -> bool:
+	addon: _AddonGUIModel = bundle._addonGuiModel
 	incompatibleMessage = pgettext(
 		"addonStore",
 		# Translators: The message displayed when enabling an add-on package that is incompatible
@@ -151,19 +174,22 @@ def _shouldEnableWhenAddonTooOldDialog(
 		"The last tested NVDA version for this add-on is {lastTestedNVDAVersion}, "
 		"your current NVDA version is {NVDAVersion}. "
 		"Enabling may cause unstable behavior in NVDA.\n"
-		"Proceed with enabling anyway? "
+		"Proceed with enabling anyway? ",
 		).format(
 	name=addon.displayName,
 	version=addon.addonVersionName,
 	lastTestedNVDAVersion=addonAPIVersion.formatForGUI(addon.lastTestedNVDAVersion),
 	NVDAVersion=addonAPIVersion.formatForGUI(addonAPIVersion.CURRENT)
 	)
+	from gui.addonGui import _showAddonDoc
+	docPath = bundle.getDocFilePathInBundle()
 	res = displayDialogAsModal(ErrorAddonInstallDialogWithYesNoButtons(
 		parent=parent,
 		# Translators: The title of a dialog presented when an error occurs.
 		title=pgettext("addonStore", "Add-on not compatible"),
 		message=incompatibleMessage,
-		showAddonInfoFunction=lambda: _showAddonInfo(addon)
+		showAddonInfoFunction=lambda: _showAddonInfo(addon),
+		showAddonDocFunction=(lambda: _showAddonDoc(bundle, docPath)) if docPath else None,
 	))
 	return res == wx.YES
 
