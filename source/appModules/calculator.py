@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2020-2023 NV Access Limited, Joseph Lee
+# Copyright (C) 2020-2023 NV Access Limited, Joseph Lee, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -15,7 +15,7 @@ import scriptHandler
 import braille
 import UIAHandler
 from comtypes import COMError
-from winUser import getKeyboardLayout
+from winUser import getKeyboardLayout, VK_SHIFT
 
 # #9428: do not announce current values until calculations are done in order to avoid repetitions.
 noCalculatorEntryAnnouncements = [
@@ -172,19 +172,20 @@ class AppModule(appModuleHandler.AppModule):
 	def _useShiftForNumbers(self, keyboardLayout):
 		import ctypes
 		import winVersion
-		if winVersion.getWinVer() < winVersion.WIN10_1607:
-			log.debugWarning(
-				'Windows version lower than Windows 10 1607. We cannot determine if shift is required to type numbers '
-				'with the current keyboard layout, so we make the hypothesis that it is not required.'
-			)
-			return False
-		keyStates=(ctypes.c_byte*256)()
-		# 
-		keyStates[16] = -128
-		charBuf=ctypes.create_unicode_buffer(5)
-		# In previous Windows builds, calling ToUnicodeEx would destroy keyboard buffer state and therefore cause the app to not produce the right WM_CHAR message.
-		# However, ToUnicodeEx now can take a new flag of 0x4, which stops it from destroying keyboard state, thus allowing us to safely call it here.
-		# If bit 2 is set, keyboard state is not changed (Windows 10, version 1607 and newer)
+		from logHandler import log
+		keyStates = (ctypes.c_byte * 256)()
+		keyStates[VK_SHIFT] = 0x80  # 0x80 = key is down.
+		charBuf = ctypes.create_unicode_buffer(5)
+		# In previous Windows builds, calling ToUnicodeEx would destroy keyboard buffer state and therefore cause
+		# the app to not produce the right WM_CHAR message.
+		# However, ToUnicodeEx now can take a new flag of 0x4, which stops it from destroying keyboard state, thus
+		# allowing us to safely call it here.
+		# If bit 2 is set, keyboard state is not changed (Windows 10, version 1607 and newer)
 		# See https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-tounicodeex
 		res = ctypes.windll.user32.ToUnicodeEx(49, 0, keyStates, charBuf, len(charBuf), 0x4, keyboardLayout)
-		return charBuf.value == '1'
+		if res < 0 and winVersion.getWinVer() < winVersion.WIN10_1607:
+			log.error(
+				'Checking the characters typed with shift+1 has returned a dead key. It may cause undesirable effects. '
+				f'{charBuf.value=}; {winVersion.getWinVer()=}; {keyboardLayout=}'
+			)
+		return res != 0 and charBuf.value[0:res] == '1'
