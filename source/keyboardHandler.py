@@ -724,3 +724,30 @@ def injectRawKeyboardInput(isPress, code, isExtended):
 	if isExtended:
 		flags |= 1
 	winUser.keybd_event(vkCode, code, flags, None)
+
+def useShiftForNumbers(keyboardLayout: int) -> bool:
+	"""Indicates if a keyboard layout uses shift to input digits on the alpha-numeric keyboard.
+	As an example, for most keyboard layouts, such as English (United States), this function returns False since
+	you just need to press the key above the "E" to output a "4". For the French (France) keyboard layout, to
+	get the "4" output, you have to press shift with the key above the "E".
+	
+	:param keyboardLayout: an input locale identifier (formerly called keyboard layout), as retrieved
+		by winUser.getKeyboardLayout
+	"""
+
+	keyStates = (ctypes.c_byte * 256)()
+	keyStates[VK_SHIFT] = 0x80  # 0x80 = key is down.
+	charBuf = ctypes.create_unicode_buffer(5)
+	# In previous Windows builds, calling ToUnicodeEx would destroy keyboard buffer state and therefore cause
+	# the app to not produce the right WM_CHAR message.
+	# However, ToUnicodeEx now can take a new flag of 0x4, which stops it from destroying keyboard state, thus
+	# allowing us to safely call it here.
+	# If bit 2 is set, keyboard state is not changed (Windows 10, version 1607 and newer)
+	# See https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-tounicodeex
+	res = ctypes.windll.user32.ToUnicodeEx(49, 0, keyStates, charBuf, len(charBuf), 0x4, keyboardLayout)
+	if res < 0 and winVersion.getWinVer() < winVersion.WIN10_1607:
+		log.error(
+			'Checking the characters typed with shift+1 has returned a dead key. It may cause undesirable effects. '
+			f'{charBuf.value=}; {winVersion.getWinVer()=}; {keyboardLayout=}'
+		)
+	return res != 0 and charBuf.value[0:res] == '1'
