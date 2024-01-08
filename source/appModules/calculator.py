@@ -15,8 +15,8 @@ import scriptHandler
 import braille
 import UIAHandler
 from comtypes import COMError
-from winUser import getKeyboardLayout, VK_SHIFT
-from keyboardHandler import useShiftForNumbers
+from winUser import getKeyboardLayout
+import keyboardHandler
 
 # #9428: do not announce current values until calculations are done in order to avoid repetitions.
 noCalculatorEntryAnnouncements = [
@@ -162,7 +162,7 @@ class AppModule(appModuleHandler.AppModule):
 		keyboardLayout = getKeyboardLayout(focus.windowThreadID)
 		if gesture.mainKeyName in [str(i) for i in range(9)]:
 			usesShiftModifier = gesture.modifierNames == ['shift']
-			useShiftForNumbers = useShiftForNumbers(keyboardLayout)
+			useShiftForNumbers = keyboardHandler.useShiftForNumbers(keyboardLayout)
 			if (
 				(useShiftForNumbers and not usesShiftModifier)
 				or (not useShiftForNumbers and usesShiftModifier)

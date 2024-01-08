@@ -725,6 +725,7 @@ def injectRawKeyboardInput(isPress, code, isExtended):
 		flags |= 1
 	winUser.keybd_event(vkCode, code, flags, None)
 
+
 def useShiftForNumbers(keyboardLayout: int) -> bool:
 	"""Indicates if a keyboard layout uses shift to input digits on the alpha-numeric keyboard.
 	As an example, for most keyboard layouts, such as English (United States), this function returns False since
@@ -736,7 +737,7 @@ def useShiftForNumbers(keyboardLayout: int) -> bool:
 	"""
 
 	keyStates = (ctypes.c_byte * 256)()
-	keyStates[VK_SHIFT] = 0x80  # 0x80 = key is down.
+	keyStates[winUser.VK_SHIFT] = 0x80  # 0x80 = key is down.
 	charBuf = ctypes.create_unicode_buffer(5)
 	# In previous Windows builds, calling ToUnicodeEx would destroy keyboard buffer state and therefore cause
 	# the app to not produce the right WM_CHAR message.
