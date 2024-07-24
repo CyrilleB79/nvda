@@ -240,14 +240,27 @@ class NVDAHighlighterSettings(providerBase.VisionEnhancementProviderSettings):
 		return _("Visual Highlight")
 
 	def _get_supportedSettings(self) -> SupportedSettingType:
-		return [
-			BooleanDriverSetting(
-				"highlight%s" % (context[0].upper() + context[1:]),
-				_contextOptionLabelsWithAccelerators[context],
-				defaultVal=True,
+		supportedSettings = []
+		for context in _supportedContexts:
+			capitalizedContext = context[0].upper() + context[1:]
+			supportedSettings.append(
+				BooleanDriverSetting(
+					f"highlight{CapitalizedContext}",
+					_contextOptionLabelsWithAccelerators[context],
+					defaultVal=True,
+				)
 			)
-			for context in _supportedContexts
-		]
+			supportedSettings.append(
+				DriverSetting(
+					id=f"highlightColor{CapitalizedContext}",
+					displayName = _("Color"),
+					displayNameWithAccelerator = _("Color"),
+					availableInSettingsRing=False,
+					defaultVal="zzz",
+					useConfig=True,
+				)
+			)
+		return supportedSettings
 
 
 class NVDAHighlighterGuiPanel(
