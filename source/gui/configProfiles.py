@@ -36,6 +36,7 @@ class ProfilesDialog(
 		super().__init__(parent, title=_("Configuration Profiles"))
 
 		self.currentAppName = (gui.mainFrame.prevFocus or api.getFocusObject()).appModule.appName
+		self.currentLanguage = self._getCurrentLanguage(gui.mainFrame.prevFocus or api.getFocusObject())
 		self.profileNames = [None]
 		self.profileNames.extend(config.conf.listProfiles())
 
@@ -123,6 +124,9 @@ class ProfilesDialog(
 
 	def __del__(self):
 		ProfilesDialog._instance = None
+
+	def _getCurrentLanguage(self, prevFocus):
+		return 'it'
 
 	def getProfileDisplay(self, name, includeStates=False):
 		# Translators: The item to select the user's normal configuration
@@ -313,6 +317,13 @@ class ProfilesDialog(
 		)
 		# Translators: Displayed for the configuration profile trigger for say all.
 		yield "sayAll", _("Say all"), True
+		yield (
+			"lang:%s" % self.currentLanguage,
+			# Translators: Displayed for the configuration profile trigger for the current language.
+			# %s is replaced by the language code.
+			_("Current language (%s)") % self.currentLanguage,
+			True,
+		)
 
 	def onClose(self, evt):
 		if self.disableTriggersToggle.Value:
