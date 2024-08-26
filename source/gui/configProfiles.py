@@ -125,7 +125,20 @@ class ProfilesDialog(
 	def __del__(self):
 		ProfilesDialog._instance = None
 
-	def _getCurrentLanguage(self, prevFocus):
+	def _getCurrentLanguage(self, obj):
+		treeInterceptor = obj.treeInterceptor
+		if (
+			isinstance(treeInterceptor, treeInterceptorHandler.DocumentTreeInterceptor)
+			and not treeInterceptor.passThrough
+		):
+			obj = treeInterceptor
+		cfg = {enableLangDetect}
+		try:
+			info = obj.makeTextInfo(textInfos.POSITION_CARET, cfg)
+		except (NotImplementedError, RuntimeError):
+			info = obj.makeTextInfo(textInfos.POSITION_FIRST, cfg)
+		info.expand(textInfos.UNIT_CHARACTER)
+		zzzGetLang
 		return 'it'
 
 	def getProfileDisplay(self, name, includeStates=False):
