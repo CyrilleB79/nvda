@@ -11,6 +11,8 @@ from logHandler import log
 import globalVars
 from . import guiHelper
 import gui.contextHelp
+import treeInterceptorHandler
+import textInfos
 
 
 class ProfilesDialog(
@@ -132,14 +134,20 @@ class ProfilesDialog(
 			and not treeInterceptor.passThrough
 		):
 			obj = treeInterceptor
-		cfg = {enableLangDetect}
 		try:
-			info = obj.makeTextInfo(textInfos.POSITION_CARET, cfg)
+			info = obj.makeTextInfo(textInfos.POSITION_CARET)
 		except (NotImplementedError, RuntimeError):
-			info = obj.makeTextInfo(textInfos.POSITION_FIRST, cfg)
+			info = obj.makeTextInfo(textInfos.POSITION_FIRST)
+		formatConfig = {k: False for k, v in config.conf['documentFormatting'].items()}
+		info = info.copy()
 		info.expand(textInfos.UNIT_CHARACTER)
-		zzzGetLang
-		return 'it'
+		for field in info.getTextWithFields(formatConfig):
+			if isinstance(field, textInfos.FieldCommand) and isinstance(field.field, textInfos.FormatField):
+				try:
+					return field.field["language"]
+				except KeyError:
+					pass
+		return None
 
 	def getProfileDisplay(self, name, includeStates=False):
 		# Translators: The item to select the user's normal configuration
