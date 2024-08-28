@@ -38,6 +38,7 @@ from .commands import (
 	EndUtteranceCommand,
 	SuppressUnicodeNormalizationCommand,
 	CharacterModeCommand,
+	ConfigProfileTriggerCommand,
 )
 from .shortcutKeys import getKeyboardShortcutsSpeech
 
@@ -1126,6 +1127,19 @@ def speak(  # noqa: C901
 				continue
 			if autoLanguageSwitching and curLanguage != prevLanguage:
 				speechSequence.append(LangChangeCommand(curLanguage))
+	
+				class LanguageProfileTrigger(config.ProfileTrigger):
+					"""A configuration profile trigger for when a text should be spoken in a specific language."""
+					def __init__(self, lang: str):
+						self.spec = f"lang:{lang}"
+
+				def getProfileTriggerForLanguage(lang):
+					for spec, profile in config.conf.triggersToProfiles.items():
+						if spec.startswith(f"lang:{lang}"):
+							return LanguageProfileTrigger(spec[len("lang:"):])
+					return None
+				trigger = getProfileTriggerForLanguage(curLanguage)
+				speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
 				prevLanguage = curLanguage
 			speechSequence.append(item)
 		else:
