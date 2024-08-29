@@ -1139,7 +1139,8 @@ def speak(  # noqa: C901
 							return LanguageProfileTrigger(spec[len("lang:"):])
 					return None
 				trigger = getProfileTriggerForLanguage(curLanguage)
-				speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
+				if trigger:
+					speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
 				prevLanguage = curLanguage
 			speechSequence.append(item)
 		else:
