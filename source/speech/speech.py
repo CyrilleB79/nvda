@@ -126,6 +126,18 @@ class SpeechState:
 	oldColumnSpan = None
 
 
+class LanguageProfileTrigger(config.ProfileTrigger):
+	"""A configuration profile trigger for when a text should be spoken in a specific language."""
+	def __init__(self, lang: str):
+		self.spec = f"lang:{lang}"
+
+	def getProfileTriggerForLanguage(lang):
+		for spec, profile in config.conf.triggersToProfiles.items():
+			if spec.startswith(f"lang:{lang}"):
+				return LanguageProfileTrigger(spec[len("lang:"):])
+		return None
+
+
 def getState():
 	return copy(_speechState)
 
@@ -1106,6 +1118,7 @@ def speak(  # noqa: C901
 	autoDialectSwitching = config.conf["speech"]["autoDialectSwitching"]
 	curLanguage = defaultLanguage = getCurrentLanguage()
 	prevLanguage = None
+	curTrigger = None
 	defaultLanguageRoot = defaultLanguage.split("_")[0]
 	unicodeNormalization = initialUnicodeNormalization = config.conf["speech"]["unicodeNormalization"]
 	oldSpeechSequence = speechSequence
@@ -1127,20 +1140,12 @@ def speak(  # noqa: C901
 				continue
 			if autoLanguageSwitching and curLanguage != prevLanguage:
 				speechSequence.append(LangChangeCommand(curLanguage))
-	
-				class LanguageProfileTrigger(config.ProfileTrigger):
-					"""A configuration profile trigger for when a text should be spoken in a specific language."""
-					def __init__(self, lang: str):
-						self.spec = f"lang:{lang}"
-
-				def getProfileTriggerForLanguage(lang):
-					for spec, profile in config.conf.triggersToProfiles.items():
-						if spec.startswith(f"lang:{lang}"):
-							return LanguageProfileTrigger(spec[len("lang:"):])
-					return None
 				trigger = getProfileTriggerForLanguage(curLanguage)
+				curTrigger = trigger
 				if trigger:
 					speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
+				elif curTrigger:
+					speechSequence.append(ConfigProfileTriggerCommand(curTrigger, enter=False))
 				prevLanguage = curLanguage
 			speechSequence.append(item)
 		else:
