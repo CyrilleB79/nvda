@@ -132,6 +132,8 @@ class LanguageProfileTrigger(config.ProfileTrigger):
 		self.spec = f"lang:{lang}"
 
 def getProfileTriggerForLanguage(lang):
+	if not config.conf["speech"]["autoDialectSwitching"]:
+		lang = lang.split('_')[0]
 	for spec, profile in config.conf.triggersToProfiles.items():
 		if spec.startswith(f"lang:{lang}"):
 			return LanguageProfileTrigger(spec[len("lang:"):])
@@ -1141,11 +1143,11 @@ def speak(  # noqa: C901
 			if autoLanguageSwitching and curLanguage != prevLanguage:
 				speechSequence.append(LangChangeCommand(curLanguage))
 				trigger = getProfileTriggerForLanguage(curLanguage)
-				curTrigger = trigger
 				if trigger:
 					speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
 				elif curTrigger:
 					speechSequence.append(ConfigProfileTriggerCommand(curTrigger, enter=False))
+				curTrigger = trigger
 				prevLanguage = curLanguage
 			speechSequence.append(item)
 		else:
@@ -1155,7 +1157,8 @@ def speak(  # noqa: C901
 		# There's nothing to speak.
 		return
 	import inputCore
-
+	
+	log.info(speechSequence)
 	inputCore.logTimeSinceInput()
 	log.io("Speaking %r" % speechSequence)
 	if symbolLevel in (characterProcessing.SymbolLevel.UNCHANGED, None):

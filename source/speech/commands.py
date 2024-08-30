@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2006-2023 NV Access Limited, Leonard de Ruijter
+# Copyright (C) 2006-2024 NV Access Limited, Leonard de Ruijter, Cyrille Bougot
 
 """
 Commands that can be embedded in a speech sequence for changing synth parameters, playing sounds or running
@@ -473,3 +473,6 @@ class ConfigProfileTriggerCommand(SpeechCommand):
 		self.trigger = trigger
 		self.enter = enter
 		trigger._shouldNotifyProfileSwitch = False
+
+	def __repr__(self):
+		return f"ConfigProfileTriggerCommand(trigger={self.trigger}, enter={self.enter})"
