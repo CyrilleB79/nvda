@@ -131,11 +131,11 @@ class LanguageProfileTrigger(config.ProfileTrigger):
 	def __init__(self, lang: str):
 		self.spec = f"lang:{lang}"
 
-	def getProfileTriggerForLanguage(lang):
-		for spec, profile in config.conf.triggersToProfiles.items():
-			if spec.startswith(f"lang:{lang}"):
-				return LanguageProfileTrigger(spec[len("lang:"):])
-		return None
+def getProfileTriggerForLanguage(lang):
+	for spec, profile in config.conf.triggersToProfiles.items():
+		if spec.startswith(f"lang:{lang}"):
+			return LanguageProfileTrigger(spec[len("lang:"):])
+	return None
 
 
 def getState():
