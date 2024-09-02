@@ -13,6 +13,7 @@ from . import guiHelper
 import gui.contextHelp
 import treeInterceptorHandler
 import textInfos
+import languageHandler
 
 
 class ProfilesDialog(
@@ -339,10 +340,10 @@ class ProfilesDialog(
 		# Translators: Displayed for the configuration profile trigger for say all.
 		yield "sayAll", _("Say all"), True
 		yield (
-			"lang:%s" % self.currentLanguage,
+			f"lang:{self.currentLanguage}",
 			# Translators: Displayed for the configuration profile trigger for the current language.
 			# %s is replaced by the language code.
-			_("Current language (%s)") % self.currentLanguage,
+			_("Current language ({lang})").format(lang=self.currentLanguage),
 			True,
 		)
 
@@ -589,7 +590,7 @@ class NewProfileDialog(
 						"Once you have finished editing, you will need to manually deactivate it to resume normal usage.\n"
 						"Do you wish to manually activate it now?",
 					),
-					# Translators: The title of the confirmation dialog for manual activation of a created profile.
+					
 					_("Manual Activation"),
 					wx.YES | wx.NO | wx.ICON_QUESTION,
 					self,
@@ -628,6 +629,17 @@ class NewProfileDialog(
 			name = ""
 		elif spec.startswith("app:"):
 			name = spec[4:]
+		elif spec.startswith("lang:"):
+			langCode = spec[len("lang:"):]
+			if langCode:
+				langDesc = languageHandler.getLanguageDescription(langCode)
+				if not langDesc:
+					langDesc = langCode
+				# Translators: The name of a text profile
+				name = _("Text: {lang}").format(lang=langDesc)
+			else:
+				# Translators: The name of a text profile
+				name = _("Text with no language")
 		else:
 			name = disp
 		if self.profileName.Value == self.autoProfileName:
