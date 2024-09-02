@@ -1143,10 +1143,17 @@ def speak(  # noqa: C901
 			if autoLanguageSwitching and curLanguage != prevLanguage:
 				speechSequence.append(LangChangeCommand(curLanguage))
 				trigger = getProfileTriggerForLanguage(curLanguage)
+				log.info(f"{curLanguage=} - {trigger=}")
+				if curTrigger:
+					log.info(f"Exit {curTrigger=}")
+					speechSequence.append(ConfigProfileTriggerCommand(curTrigger, enter=False))			
+				else:
+					log.info(f"No current trigger to exit")
 				if trigger:
+					log.info("Enter trigger")
 					speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
-				elif curTrigger:
-					speechSequence.append(ConfigProfileTriggerCommand(curTrigger, enter=False))
+				else:
+					log.info(f"No trigger action")
 				curTrigger = trigger
 				prevLanguage = curLanguage
 			speechSequence.append(item)
