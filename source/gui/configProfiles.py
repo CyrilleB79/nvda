@@ -340,10 +340,9 @@ class ProfilesDialog(
 		# Translators: Displayed for the configuration profile trigger for say all.
 		yield "sayAll", _("Say all"), True
 		yield (
-			f"lang:{self.currentLanguage}",
-			# Translators: Displayed for the configuration profile trigger for the current language.
-			# %s is replaced by the language code.
-			_("Current language ({lang})").format(lang=self.currentLanguage),
+			f"speech",
+			# Translators: Displayed for the configuration profile trigger for speech
+			_("Speech"),
 			True,
 		)
 
@@ -478,6 +477,15 @@ class NewProfileDialog(
 ):
 	helpId = "ProfilesCreating"
 
+	class _speechTriggerConfig():
+		LANGUAGE = 'language'
+		
+		def _displayString(self):
+			return {
+				# Translators: An item in the checkable listbox of the speech trigger configuration.
+				_speechTriggerConfig = _("Language")
+			}
+
 	def __init__(self, parent):
 		# Translators: The title of the dialog to create a new configuration profile.
 		super().__init__(parent, title=_("New Profile"))
@@ -501,6 +509,18 @@ class NewProfileDialog(
 		)
 		self.triggerChoice.Bind(wx.EVT_RADIOBOX, self.onTriggerChoice)
 		self.autoProfileName = ""
+
+		self.speechProfileConfigList: nvdaControls.CustomCheckListBox = settingsSizerHelper.addLabeledControl(
+			# Translators: Label of the list where user can enable or disable speech trigger configuration
+			_("Speech trigger configuration:"),
+			nvdaControls.CustomCheckListBox,
+			choices=[c.displayName for c in self._speechTriggerConfig],
+		)
+		self.symbolDictionariesList.CheckedItems = [
+			i for i, d in enumerate(self._availableSymbolDictionaries) if d.enabled
+		]
+		self.speechProfileConfigList.Select(0)
+
 		self.onTriggerChoice(None)
 
 		sHelper.addDialogDismissButtons(wx.OK | wx.CANCEL, separated=True)
@@ -629,17 +649,17 @@ class NewProfileDialog(
 			name = ""
 		elif spec.startswith("app:"):
 			name = spec[4:]
-		elif spec.startswith("lang:"):
-			langCode = spec[len("lang:"):]
+		elif spec.startswith("speech"):
+			langCode = self.Parent.currentLanguage
 			if langCode:
 				langDesc = languageHandler.getLanguageDescription(langCode)
 				if not langDesc:
 					langDesc = langCode
 				# Translators: The name of a text profile
-				name = _("Text: {lang}").format(lang=langDesc)
+				name = _("Speech - Language:{lang}").format(lang=langDesc)
 			else:
 				# Translators: The name of a text profile
-				name = _("Text with no language")
+				name = _("Speech: Language: Not defined")
 		else:
 			name = disp
 		if self.profileName.Value == self.autoProfileName:

@@ -126,17 +126,38 @@ class SpeechState:
 	oldColumnSpan = None
 
 
-class LanguageProfileTrigger(config.ProfileTrigger):
-	"""A configuration profile trigger for when a text should be spoken in a specific language."""
-	def __init__(self, lang: str):
-		self.spec = f"lang:{lang}"
+class SpeechProfileTrigger(config.ProfileTrigger):
+	"""A configuration profile trigger for when a text with specific properties should be spoken with a specific
+	profile. E.g. a text tagged in French language read with a profile using a French synthesizer or voice.
+	"""
+
+	def __init__(self, spec: str):
+		self.spec = f"speech:{self._configToString(cfg)}"
+		self.config = self._stringToConfig(spec[len("speech:"):])
+
+	@staticmethod
+	def _configToString(cfg):
+		configList = []
+		for key, value in cfg.items():
+			configList.append(f"{key}={value}")
+		return ','.join(configList)
+
+	@staticmethod
+	def _stringToConfig(configString):
+		cfg = {}
+		for item in configString.split(','):
+			k, v = item.split('=')
+			cfg[k] = v
+		return cfg
+
 
 def getProfileTriggerForLanguage(lang):
 	if not config.conf["speech"]["autoDialectSwitching"]:
 		lang = lang.split('_')[0]
 	for spec, profile in config.conf.triggersToProfiles.items():
-		if spec.startswith(f"lang:{lang}"):
-			return LanguageProfileTrigger(spec[len("lang:"):])
+		if spec.startswith(f"speech:"):
+			trigger = SpeechProfileTrigger(spec)
+			zzz
 	return None
 
 
@@ -1143,17 +1164,17 @@ def speak(  # noqa: C901
 			if autoLanguageSwitching and curLanguage != prevLanguage:
 				speechSequence.append(LangChangeCommand(curLanguage))
 				trigger = getProfileTriggerForLanguage(curLanguage)
-				log.info(f"{curLanguage=} - {trigger=}")
+				log.info(f"zzz {curLanguage=} - {trigger=}")
 				if curTrigger:
-					log.info(f"Exit {curTrigger=}")
+					log.info(f"zzz Exit {curTrigger=}")
 					speechSequence.append(ConfigProfileTriggerCommand(curTrigger, enter=False))			
 				else:
-					log.info(f"No current trigger to exit")
+					log.info(f"zzz No current trigger to exit")
 				if trigger:
-					log.info("Enter trigger")
+					log.info("zzz Enter trigger")
 					speechSequence.append(ConfigProfileTriggerCommand(trigger, enter=True))
 				else:
-					log.info(f"No trigger action")
+					log.info(f"zzz No trigger action")
 				curTrigger = trigger
 				prevLanguage = curLanguage
 			speechSequence.append(item)
