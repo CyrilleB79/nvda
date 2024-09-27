@@ -10,10 +10,12 @@ import gui
 from logHandler import log
 import globalVars
 from . import guiHelper
+from . import nvdaControls
 import gui.contextHelp
 import treeInterceptorHandler
 import textInfos
 import languageHandler
+from utils.displayString import DisplayStringStrEnum
 
 
 class ProfilesDialog(
@@ -340,7 +342,7 @@ class ProfilesDialog(
 		# Translators: Displayed for the configuration profile trigger for say all.
 		yield "sayAll", _("Say all"), True
 		yield (
-			f"speech",
+			"speech",
 			# Translators: Displayed for the configuration profile trigger for speech
 			_("Speech"),
 			True,
@@ -471,20 +473,22 @@ class TriggersDialog(
 		self.Destroy()
 
 
+class _SpeechTriggerConfig(DisplayStringStrEnum):
+	LANGUAGE = 'language'
+
+	@property
+	def _displayStringLabels(self):
+		return {
+			# Translators: An item in the checkable listbox of the speech trigger configuration.
+			_SpeechTriggerConfig.LANGUAGE: _("Language")
+		}
+
+
 class NewProfileDialog(
 	gui.contextHelp.ContextHelpMixin,
 	wx.Dialog,  # wxPython does not seem to call base class initializer, put last in MRO
 ):
 	helpId = "ProfilesCreating"
-
-	class _speechTriggerConfig():
-		LANGUAGE = 'language'
-		
-		def _displayString(self):
-			return {
-				# Translators: An item in the checkable listbox of the speech trigger configuration.
-				_speechTriggerConfig = _("Language")
-			}
 
 	def __init__(self, parent):
 		# Translators: The title of the dialog to create a new configuration profile.
@@ -510,15 +514,12 @@ class NewProfileDialog(
 		self.triggerChoice.Bind(wx.EVT_RADIOBOX, self.onTriggerChoice)
 		self.autoProfileName = ""
 
-		self.speechProfileConfigList: nvdaControls.CustomCheckListBox = settingsSizerHelper.addLabeledControl(
+		self.speechProfileConfigList: nvdaControls.CustomCheckListBox = sHelper.addLabeledControl(
 			# Translators: Label of the list where user can enable or disable speech trigger configuration
 			_("Speech trigger configuration:"),
 			nvdaControls.CustomCheckListBox,
-			choices=[c.displayName for c in self._speechTriggerConfig],
+			choices=[c.displayString for c in _SpeechTriggerConfig],
 		)
-		self.symbolDictionariesList.CheckedItems = [
-			i for i, d in enumerate(self._availableSymbolDictionaries) if d.enabled
-		]
 		self.speechProfileConfigList.Select(0)
 
 		self.onTriggerChoice(None)
@@ -667,6 +668,10 @@ class NewProfileDialog(
 			self.profileName.Value = name
 			self.profileName.SelectAll()
 		self.autoProfileName = name
+		if spec and spec.startswith("speech"):
+			self.speechProfileConfigList.Show()
+		else:
+			self.speechProfileConfigList.Hide()
 
 
 class RenameProfileDialog(
