@@ -17,7 +17,7 @@ from logHandler import log
 
 from ..viewModels.addonList import AddonDetailsVM, AddonListField
 
-from .actions import _MonoActionsContextMenu
+from .actions import _MonoActionsContextMenu, _BatchActionsContextMenu
 
 from buildVersion import formatVersionForGUI
 
@@ -59,9 +59,12 @@ class AddonDetails(
 		parent: "AddonStoreDialog",
 		detailsVM: AddonDetailsVM,
 		actionsContextMenu: _MonoActionsContextMenu,
+		batchActionsContextMenu: _BatchActionsContextMenu,
 	):
 		self._detailsVM: AddonDetailsVM = detailsVM
 		self._actionsContextMenu = actionsContextMenu
+		self._batchActionsContextMenu = batchActionsContextMenu
+		self._currentActionsContextMenu = self._actionsContextMenu
 
 		wx.Panel.__init__(
 			self,
@@ -129,7 +132,7 @@ class AddonDetails(
 		self.contents.Add(self.actionsButton)
 		self.actionsButton.Bind(
 			event=wx.EVT_BUTTON,
-			handler=lambda e: self._actionsContextMenu.popupContextMenuFromPosition(
+			handler=lambda e: self._currentActionsContextMenu.popupContextMenuFromPosition(
 				self,
 				self.actionsButton.Position,
 			),
@@ -213,7 +216,7 @@ class AddonDetails(
 			# SetDefaultStyle, however, this means the text control must start empty.
 			self.otherDetailsTextCtrl.SetValue("")
 			if numSelectedAddons > 1:
-				self.contentsPanel.Hide()
+				#zzz self.contentsPanel.Hide()
 				self.updateAddonName(
 					npgettext(
 						"addonStore",
@@ -224,6 +227,7 @@ class AddonDetails(
 						numSelectedAddons,
 					).format(num=numSelectedAddons),
 				)
+				self._currentActionsContextMenu = self._batchActionsContextMenu
 			elif not details:
 				self.contentsPanel.Hide()
 				if self._detailsVM._listVM._isLoading:
@@ -242,6 +246,7 @@ class AddonDetails(
 					self.descriptionTextCtrl.GetLastPosition(),
 					self.defaultStyle,
 				)
+				self._currentActionsContextMenu = self._actionsContextMenu
 
 				if isinstance(details, _AddonStoreModel):
 					# Publisher comes from the add-on store JSON.

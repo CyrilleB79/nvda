@@ -34,6 +34,7 @@ class AddonVirtualList(
 		parent: wx.Window,
 		addonsListVM: AddonListVM,
 		actionsContextMenu: _MonoActionsContextMenu,
+		batchActionsContextMenu: _BatchActionsContextMenu,
 	):
 		super().__init__(
 			parent,
@@ -47,7 +48,7 @@ class AddonVirtualList(
 		)
 		self._addonsListVM = addonsListVM
 		self._actionsContextMenu = actionsContextMenu
-		self._batchActionsContextMenu = _BatchActionsContextMenu(self._addonsListVM._storeVM)
+		self._batchActionsContextMenu = batchActionsContextMenu
 
 		self.SetMinSize(self.scaleSize((500, 500)))
 

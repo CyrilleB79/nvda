@@ -33,7 +33,7 @@ from gui.settingsDialogs import SettingsDialog
 from logHandler import log
 
 from ..viewModels.store import AddonStoreVM
-from .actions import _MonoActionsContextMenu
+from .actions import _MonoActionsContextMenu, _BatchActionsContextMenu
 from .addonList import AddonVirtualList
 from .details import AddonDetails
 from .messageDialogs import _SafetyWarningDialog
@@ -51,6 +51,7 @@ class AddonStoreDialog(SettingsDialog):
 		self._storeVM = storeVM
 		self._storeVM.onDisplayableError.register(self.handleDisplayableError)
 		self._actionsContextMenu = _MonoActionsContextMenu(self._storeVM)
+		self._batchActionsContextMenu = _BatchActionsContextMenu(self._storeVM)
 		self.openToTab = openToTab
 		super().__init__(parent, resizeable=True, buttons={wx.CLOSE})
 		if config.conf["addonStore"]["showWarning"]:
@@ -108,6 +109,7 @@ class AddonStoreDialog(SettingsDialog):
 			parent=self,
 			addonsListVM=self._storeVM.listVM,
 			actionsContextMenu=self._actionsContextMenu,
+			batchActionsContextMenu=self._batchActionsContextMenu,
 		)
 		self.bindHelpEvent("AddonStoreBrowsing", self.addonListView)
 		tabPageHelper.addItem(self.addonListView, flag=wx.EXPAND, proportion=1)
@@ -117,6 +119,7 @@ class AddonStoreDialog(SettingsDialog):
 			parent=self,
 			detailsVM=self._storeVM.detailsVM,
 			actionsContextMenu=self._actionsContextMenu,
+			batchActionsContextMenu=self._batchActionsContextMenu,
 		)
 		splitViewSizer.Add(self.addonDetailsView, flag=wx.EXPAND, proportion=1)
 		self.bindHelpEvent("AddonStoreActions", self.addonDetailsView.actionsButton)
