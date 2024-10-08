@@ -42,7 +42,7 @@ from . import Window
 from ..behaviors import EditableTextWithoutAutoSelectDetection
 from . import _msOfficeChart
 import locationHelper
-from enum import IntEnum
+from enum import Enum, IntEnum
 import documentBase
 from utils.displayString import DisplayStringIntEnum
 
@@ -80,6 +80,13 @@ wdStartOfRangeRowNumber = 13
 wdMaximumNumberOfRows = 15
 wdStartOfRangeColumnNumber = 16
 wdMaximumNumberOfColumns = 18
+
+
+class MsoHyperlinkEnum(Enum):
+	# See https://learn.microsoft.com/en-us/office/vba/api/office.msohyperlinktype
+	RANGE = 0
+	SHAPE = 1
+	INLINE_SHAPE = 2
 
 
 class WdUnderline(DisplayStringIntEnum):
@@ -804,14 +811,14 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 						initialDocument=self.obj,
 					),
 				)
+	
 		# Handle activating links.
+		link = self.getLinkAtCaretPosition()
+		if link:
+			link.follow()
+			return
 		# It is necessary to expand to word to get a link as the link's first character is never actually in the link!
 		tempRange = self._rangeObj.duplicate
-		tempRange.expand(wdWord)
-		links = tempRange.hyperlinks
-		if links.count > 0:
-			links[1].follow()
-			return
 		tempRange.expand(wdParagraph)
 		fields = tempRange.fields
 		for field in (fields.item(i) for i in range(1, fields.count + 1)):
@@ -846,6 +853,28 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			speech.speakTextInfo(tiCopy, reason=controlTypes.OutputReason.FOCUS)
 			braille.handler.handleCaretMove(self)
 			return
+
+	def getLinkAtCaretPosition(self):
+		# It is necessary to expand to word to get a link as the link's first character is never actually in the link!
+		tempRange = self._rangeObj.duplicate
+		tempRange.expand(wdWord)
+		links = tempRange.hyperlinks
+		if links.count > 0:
+			return links[1]
+		return None
+			
+	def getLinkStructAtCaretPosition(self):
+		link = self.getLinkAtCaretPosition()
+		if link.Type == MsoHyperlinkEnum.RANGE:
+			text = link.TextToDisplay
+		else:
+			text = None
+		if link:
+			return {
+				'text': text,
+				'destination': link.Address,
+			}
+		return None
 
 	def _expandToLineAtCaret(self):
 		lineStart = ctypes.c_int()

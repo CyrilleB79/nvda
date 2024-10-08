@@ -4192,9 +4192,47 @@ class GlobalCommands(ScriptableObject):
 		except RuntimeError:
 			log.debugWarning("Unable to get the caret position.", exc_info=True)
 			ti: textInfos.TextInfo = api.getFocusObject().makeTextInfo(textInfos.POSITION_FIRST)
+		try:
+			link = ti.getLinkStructAtCaretPosition()
+		except AttributeError:
+			link = self.getLinkAtCaretPosition(ti)
+		presses = scriptHandler.getLastScriptRepeatCount()
+		if link:
+			linkDestination = link['destination'] 
+			if linkDestination is None:
+				# Translators: Informs the user that the link has no destination
+				ui.message(_("Link has no apparent destination"))
+				return
+			if (
+				presses == 1  # If pressed twice, or
+				or forceBrowseable  # if a browseable message is preferred unconditionally
+			):
+				text = link['text']
+				if text is None:
+					# Translators: Title of the browseable message when requesting the destination of a graphical link.
+					text = _("Graphic")
+				ui.browseableMessage(
+					linkDestination,
+					# Translators: Informs the user that the window contains the destination of the
+					# link with given title
+					title=_("Destination of: {name}").format(
+						name=text,
+						closeButton=True,
+						copyButton=True,
+					)
+				)
+			elif presses == 0:  # One press
+				ui.message(linkDestination)  # Speak the link
+			else:  # Some other number of presses
+				return  # Do nothing
+		else:
+			# Translators: Tell user that the command has been run on something that is not a link
+			ui.message(_("Not a link."))
+
+
+	def getLinkAtCaretPosition(self, ti):
 		ti.expand(textInfos.UNIT_CHARACTER)
 		obj: NVDAObject = ti.NVDAObjectAtStart
-		presses = scriptHandler.getLastScriptRepeatCount()
 		if obj.role == controlTypes.role.Role.GRAPHIC and (
 			obj.parent and obj.parent.role == controlTypes.role.Role.LINK
 		):
@@ -4205,31 +4243,12 @@ class GlobalCommands(ScriptableObject):
 			obj.role == controlTypes.role.Role.LINK  # If it's a link, or
 			or controlTypes.state.State.LINKED in obj.states  # if it isn't a link but contains one
 		):
-			linkDestination = obj.value
-			if linkDestination is None:
-				# Translators: Informs the user that the link has no destination
-				ui.message(_("Link has no apparent destination"))
-				return
-			if (
-				presses == 1  # If pressed twice, or
-				or forceBrowseable  # if a browseable message is preferred unconditionally
-			):
-				ui.browseableMessage(
-					linkDestination,
-					# Translators: Informs the user that the window contains the destination of the
-					# link with given title
-					title=_("Destination of: {name}").format(name=obj.name),
-					closeButton=True,
-					copyButton=True,
-				)
-			elif presses == 0:  # One press
-				ui.message(linkDestination)  # Speak the link
-			else:  # Some other number of presses
-				return  # Do nothing
-		else:
-			# Translators: Tell user that the command has been run on something that is not a link
-			ui.message(_("Not a link."))
-
+			link = {}
+			link['text'] = obj.name
+			link['destination'] = obj.value
+			return link
+		return None
+			
 	@script(
 		description=_(
 			# Translators: input help mode message for Report URL of a link in a window command
