@@ -813,7 +813,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 				)
 	
 		# Handle activating links.
-		link = self.getLinkAtCaretPosition()
+		link = self._getLinkAtCaretPosition()
 		if link:
 			link.follow()
 			return
@@ -854,7 +854,7 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			braille.handler.handleCaretMove(self)
 			return
 
-	def getLinkAtCaretPosition(self):
+	def _getLinkAtCaretPosition(self):
 		# It is necessary to expand to word to get a link as the link's first character is never actually in the link!
 		tempRange = self._rangeObj.duplicate
 		tempRange.expand(wdWord)
@@ -863,17 +863,17 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			return links[1]
 		return None
 			
-	def getLinkStructAtCaretPosition(self):
-		link = self.getLinkAtCaretPosition()
+	def _getLinkDataAtCaretPosition(self) -> textInfos._Link | None:
+		link = self._getLinkAtCaretPosition()
 		if link.Type == MsoHyperlinkEnum.RANGE:
 			text = link.TextToDisplay
 		else:
 			text = None
 		if link:
-			return {
-				'text': text,
-				'destination': link.Address,
-			}
+			return textInfos._Link(
+				displayText=text,
+				destination=link.Address,
+			)
 		return None
 
 	def _expandToLineAtCaret(self):
