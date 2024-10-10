@@ -705,6 +705,9 @@ class TextInfo(baseObject.AutoPropertyObject):
 		mouseHandler.doPrimaryClick()
 		winUser.setCursorPos(oldX, oldY)
 
+	def _getLinkDataAtCaretPosition(self):
+		raise NotImplementedError
+
 	def getMathMl(self, field):
 		"""Get MathML for a math control field.
 		This will only be called for control fields with a role of L{controlTypes.Role.MATH}.
@@ -756,7 +759,7 @@ class TextInfo(baseObject.AutoPropertyObject):
 			exactly 1 character.
 			A good illustration of this is in Microsoft Word with UIA enabled always,
 			the first character of a bullet list item would be represented by three pythonic codepoint characters:
-			* Bullet character "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢"
+			* Bullet character "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢"
 			* Tab character \t
 			* And the first character of of list item per se.
 

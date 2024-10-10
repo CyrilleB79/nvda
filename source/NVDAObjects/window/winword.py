@@ -42,7 +42,7 @@ from . import Window
 from ..behaviors import EditableTextWithoutAutoSelectDetection
 from . import _msOfficeChart
 import locationHelper
-from enum import Enum, IntEnum
+from enum import IntEnum
 import documentBase
 from utils.displayString import DisplayStringIntEnum
 
@@ -82,7 +82,7 @@ wdStartOfRangeColumnNumber = 16
 wdMaximumNumberOfColumns = 18
 
 
-class MsoHyperlinkEnum(Enum):
+class MsoHyperlinkEnum(IntEnum):
 	# See https://learn.microsoft.com/en-us/office/vba/api/office.msohyperlinktype
 	RANGE = 0
 	SHAPE = 1
@@ -863,18 +863,32 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			return links[1]
 		return None
 			
+	def _getShapeAtCaretPosition(self):
+		# It is necessary to expand to word to get a shape as the link's first character is never actually in the link!
+		tempRange = self._rangeObj.duplicate
+		tempRange.expand(wdWord)
+		shapes = tempRange.InlineShapes
+		if shapes.count > 0:
+			return shapes[1]
+		return None
+			
+	
 	def _getLinkDataAtCaretPosition(self) -> textInfos._Link | None:
 		link = self._getLinkAtCaretPosition()
+		if not link:
+			return None
 		if link.Type == MsoHyperlinkEnum.RANGE:
 			text = link.TextToDisplay
+		elif link.Type == MsoHyperlinkEnum.INLINE_SHAPE:
+			shape = self._getShapeAtCaretPosition()
+			text = shape.AlternativeText
 		else:
+			log.debugWarning(f"No text to display for link type {link.Type}")
 			text = None
-		if link:
-			return textInfos._Link(
-				displayText=text,
-				destination=link.Address,
-			)
-		return None
+		return textInfos._Link(
+			displayText=text,
+			destination=link.Address,
+		)
 
 	def _expandToLineAtCaret(self):
 		lineStart = ctypes.c_int()

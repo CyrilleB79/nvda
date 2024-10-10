@@ -4194,7 +4194,7 @@ class GlobalCommands(ScriptableObject):
 			ti: textInfos.TextInfo = api.getFocusObject().makeTextInfo(textInfos.POSITION_FIRST)
 		try:
 			link = ti._getLinkDataAtCaretPosition()
-		except AttributeError:
+		except NotImplementedError:
 			link = self._getLinkDataAtCaretPosition(ti)
 		presses = scriptHandler.getLastScriptRepeatCount()
 		if link:
