@@ -6,7 +6,8 @@
 import controlTypes
 from urllib.parse import ParseResult, urlparse, urlunparse
 from logHandler import log
-import textInfos
+from NVDAObjects import textInfos
+import NVDAObject
 
 
 def getLinkType(targetURL: str, rootURL: str) -> controlTypes.State | None:
