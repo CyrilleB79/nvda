@@ -710,6 +710,11 @@ class BaseOutlookWordDocument(BaseWordDocument):
 			return
 		self.reportTab()
 
+	__gestures = {
+		"kb:control+0": "changeParagraphSpacing",
+		"kb:control+=": "toggleSuperscriptSubscript",
+	}
+
 
 class OutlookWordDocument(WordDocument, BaseOutlookWordDocument):
 	def _get_isReadonlyViewer(self):

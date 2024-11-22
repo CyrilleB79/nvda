@@ -24,6 +24,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	import inputCore
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	import inputCore
+
 
 class ViewType(DisplayStringIntEnum):
 	"""Enumeration containing the possible view types in Word documents:.
@@ -59,6 +63,10 @@ class AppModule(appModuleHandler.AppModule):
 
 
 class WinwordWordDocument(WordDocument):
+	"""A WordDocument class to host what only apply to MS Word but not to Outlook: scripts, Word-only command
+	# mapping, etc.
+	"""
+
 	def _get_description(self) -> str:
 		try:
 			curView = self.WinwordWindowObject.view.Type
@@ -129,8 +137,27 @@ class WinwordWordDocument(WordDocument):
 			msg = _("Expanded")
 		ui.message(msg)
 
+	@script(gestures=["kb:control+-", "kb:control+=", "kb:control+0"])
+	def script_modifyZoomLevel(self, gesture: "inputCore.InputGesture"):
+		if not self.WinwordApplicationObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the status change.
+			# The object model may be unavailable because it's within Windows Defender Application Guard.
+			# In this case, just let the gesture through and don't report anything.
+			return gesture.send()
+		view = self.WinwordApplicationObject.ActiveWindow.ActivePane.View
+		val = self._WaitForValueChangeForAction(
+			action=lambda: gesture.send(),
+			fetcher=lambda: view.Zoom.Percentage,
+			delay = 0.05,
+			initialDelay=0.1,
+			timeout=0.4,
+		)
+		# Translators: a message when modifying zoom in Microsoft Word
+		ui.message(_("{zoom}").format(zoom=val))
+
 	__gestures = {
 		"kb:control+shift+b": "toggleBold",
 		"kb:control+shift+w": "toggleUnderline",
 		"kb:control+shift+a": "toggleCaps",
+		"kb:control+shift+-": "toggleSuperscriptSubscript",
 	}

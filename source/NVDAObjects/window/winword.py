@@ -1670,13 +1670,21 @@ class WordDocument(Window, EditableTextBase):
 			self._WinwordSelectionObject = windowObject.selection
 		return self._WinwordSelectionObject
 
-	def _WaitForValueChangeForAction(self, action, fetcher, timeout=0.15):
+	def _WaitForValueChangeForAction(
+		self,
+		action,
+		fetcher,
+		timeout: float = 0.15,
+		delay: float = 0.01,
+		initialDelay: float = 0,
+	):
 		oldVal = fetcher()
 		action()
+		time.sleep(initialDelay)
 		startTime = curTime = time.time()
 		curVal = fetcher()
 		while curVal == oldVal and (curTime - startTime) < timeout:
-			time.sleep(0.01)
+			time.sleep(delay)
 			curVal = fetcher()
 			curTime = time.time()
 		return curVal
@@ -1838,7 +1846,7 @@ class WordDocument(Window, EditableTextBase):
 		msg = self.getLocalizedMeasurementTextForPointSize(margin + val)
 		ui.message(msg)
 
-	@script(gestures=["kb:control+=", "kb:control+shift+="])
+	@script(gestures=["kb:control+shift+="])
 	def script_toggleSuperscriptSubscript(self, gesture):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
@@ -2054,7 +2062,6 @@ class WordDocument(Window, EditableTextBase):
 			# Translators: a message when switching to 1.5 line spaceing  in Microsoft word
 			ui.message(_("1.5 line spacing"))
 
-	@script(gesture="kb:control+0")
 	def script_changeParagraphSpacing(self, gesture: "inputCore.InputGesture"):
 		if not self.WinwordSelectionObject:
 			# We cannot fetch the Word object model, so we therefore cannot report the format change.
