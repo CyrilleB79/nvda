@@ -4936,11 +4936,12 @@ class VisionSettingsPanel(SettingsPanel):
 		# Broad except used since we can not know what exceptions a provider might throw.
 		# We should be able to continue despite a buggy provider.
 		except Exception:
-			log.debug(f"Error creating providerPanel: {settingsPanelCls!r}", exc_info=True)
+			log.error(f"Error creating providerPanel: {settingsPanelCls!r}", exc_info=True)
 			return None
 
 	def makeSettings(self, settingsSizer: wx.BoxSizer):
 		self.initialProviders = vision.handler.getActiveProviderInfos()
+		log.info(str(self.initialProviders))
 		self.providerPanelInstances = []
 		self.settingsSizerHelper = guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
 		self.settingsSizerHelper.addItem(wx.StaticText(self, label=self.panelDescription))
@@ -4954,6 +4955,8 @@ class VisionSettingsPanel(SettingsPanel):
 				settingsSizer.AddSpacer(guiHelper.SPACE_BETWEEN_VERTICAL_DIALOG_ITEMS)
 
 			settingsPanel = self._createProviderSettingsPanel(providerInfo)
+			log.info(f"zzz {providerInfo}")
+			# zzz ProviderInfo(providerId='NVDAHighlighter', moduleName='NVDAHighlighter', displayName='Mise en Évidence Visuelle', providerClass=<class 'visionEnhancementProviders.NVDAHighlighter.NVDAHighlighter'>)
 			if not settingsPanel:
 				continue
 
