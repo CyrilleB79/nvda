@@ -2051,6 +2051,31 @@ class WordDocument(Window):
 		# Translators: a message when toggling paragraph spacing in Microsoft word
 		ui.message(_("{val:g} pt space before paragraph").format(val=val))
 
+	@script(gestures=["kb:f8", "kb:escape"])
+	def script_toggleSelectionMode(self, gesture: "inputCore.InputGesture"):
+		if not self.WinwordApplicationObject:
+			# We cannot fetch the Word object model, so we therefore cannot report the selection mode.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or it's within Windows Defender Application Guard.
+			# In this case, just let the gesture through and don't report anything.
+			return gesture.send()
+		originalVal = self.WinwordApplicationObject.Selection.ExtendMode
+		val = self._WaitForValueChangeForAction(
+			lambda: gesture.send(),
+			lambda: self.WinwordApplicationObject.Selection.ExtendMode,
+		)
+		if val != originalVal:
+			if val:
+				navGestures = [g.replace("shift+", "") for g in self.getSelectionGestures()]
+				for gesture in navGestures:
+					self.bindGesture(gesture, "caret_changeSelection")
+				# Translators: a message when toggling extended selection mode in Word
+				ui.message(_("Extended selection mode"))
+			else:
+				# Translators: a message when toggling extended selection mode in Word
+				ui.message(_("Normal selection mode"))
+			
+
 	def initOverlayClass(self):
 		if isinstance(self, EditableTextWithoutAutoSelectDetection):
 			self.bindGesture("kb:alt+shift+home", "caret_changeSelection")

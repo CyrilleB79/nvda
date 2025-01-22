@@ -483,6 +483,9 @@ class EditableTextWithoutAutoSelectDetection(EditableText):
 		"kb:control+a",
 	)
 
+	def getSelectionGestures(self):
+		return self.__changeSelectionGestures
+
 	def initClass(self):
 		for gesture in self.__changeSelectionGestures:
 			self.bindGesture(gesture, "caret_changeSelection")
