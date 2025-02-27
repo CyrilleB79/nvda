@@ -2865,6 +2865,12 @@ def getFormatFieldSpeech(  # noqa: C901
 					# See http://en.wikipedia.org/wiki/Strikethrough
 					else _("strikethrough")
 				)
+				if strikethrough == "double":
+					text = _("double strikethrough")
+				elif strikethrough == "wavy":
+					text = "wavy strikethrough"
+				else:
+					text = _("strikethrough")
 			else:
 				# Translators: Reported when text is formatted without strikethrough.
 				# See http://en.wikipedia.org/wiki/Strikethrough

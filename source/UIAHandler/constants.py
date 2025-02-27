@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2021 NV Access Limited, Bill Dengler
+# Copyright (C) 2021-2025 NV Access Limited, Bill Dengler, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -27,6 +27,33 @@ FillTypeLabels = {
 	FillType.PATTERN: pgettext("UIAHandler.FillType", "pattern"),
 }
 
+
+class TextDecorationLineStyle(enum.IntEnum):
+	"""Line styles, e.g. for strikethrough.
+
+	.. seealso:: ```TextDecorationLineStyle`` enumeration (uiautomationcore.h) <https://learn.microsoft.com/en-us/windows/win32/api/uiautomationcore/ne-uiautomationcore-textdecorationlinestyle>`_
+	"""
+
+	NONE = 0
+	SINGLE = 1
+	WORDS_ONLY = 2
+	DOUBLE = 3
+	DOT = 4
+	DASH = 5
+	DASH_DOT = 6
+	DASH_DOT_DOT = 7
+	WAVY = 8
+	THICK_SINGLE = 9
+	DOUBLE_WAVY = 11
+	THICK_WAVY = 12
+	LONG_DASH = 13
+	THICK_DASH = 14
+	THICK_DASH_DOT = 15
+	THICK_DASH_DOT_DOT = 16
+	THICK_DOT = 17
+	THICK_LONG_DASH = 18
+	OTHER = -1
+	
 
 # Some newer UIA constants that could be missing
 class UIAutomationType(enum.IntEnum):

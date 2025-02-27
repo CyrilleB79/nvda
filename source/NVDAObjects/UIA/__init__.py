@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2009-2023 NV Access Limited, Joseph Lee, Mohammad Suliman, Babbage B.V., Leonard de Ruijter,
+# Copyright (C) 2009-2025 NV Access Limited, Joseph Lee, Mohammad Suliman, Babbage B.V., Leonard de Ruijter,
 # Bill Dengler, Cyrille Bougot
 
 """Support for UI Automation (UIA) controls."""
@@ -34,6 +34,7 @@ import speech
 import api
 import textInfos
 from logHandler import log
+from UIAHandler.constants import TextDecorationLineStyle
 from UIAHandler.types import (
 	IUIAutomationTextRangeT,
 )
@@ -206,7 +207,12 @@ class UIATextInfo(textInfos.TextInfo):
 			formatField["underline"] = bool(val)
 		val = fetch(UIAHandler.UIA_StrikethroughStyleAttributeId)
 		if val != UIAHandler.handler.reservedNotSupportedValue:
-			formatField["strikethrough"] = bool(val)
+			if val == TextDecorationLineStyle.DOUBLE:
+				formatField["strikethrough"] = "double"
+			elif val == TextDecorationLineStyle.WAVY:
+				formatField["strikethrough"] = "wavy"
+			else:
+				formatField["strikethrough"] = bool(val)
 
 	def _getFormatFieldSuperscriptsAndSubscripts(
 		self,
