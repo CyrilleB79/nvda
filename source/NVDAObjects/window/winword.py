@@ -768,6 +768,11 @@ class TableWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
 		return config.conf["documentFormatting"]["includeLayoutTables"] or item.borders.enable
 
 
+class ListItemWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
+	def collectionFromRange(self, rangeObj):
+		return rangeObj.ListParagraphs
+
+
 class ChartWinWordCollectionQuicknavIterator(WinWordCollectionQuicknavIterator):
 	quickNavItemClass = WordDocumentChartQuickNavItem
 
@@ -1532,6 +1537,14 @@ class WordDocumentTreeInterceptor(browseMode.BrowseModeDocumentTreeInterceptor):
 			).iterate()
 		elif nodeType == "chart":
 			return ChartWinWordCollectionQuicknavIterator(
+				nodeType,
+				self,
+				direction,
+				rangeObj,
+				includeCurrent,
+			).iterate()
+		elif nodeType == "listItem":
+			return ListItemWinWordCollectionQuicknavIterator(
 				nodeType,
 				self,
 				direction,
