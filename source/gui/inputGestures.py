@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2013-2020 NV Access Limited, Peter Vágner, Aleksey Sadovoy,
+# Copyright (C) 2013-2025 NV Access Limited, Peter Vágner, Aleksey Sadovoy,
 # Rui Batista, Joseph Lee, Heiko Folkerts, Zahari Yurukov, Leonard de Ruijter,
 # Derek Riemer, Babbage B.V., Davy Kager, Ethan Holliger, Bill Dengler, Thomas Stivers
 # Julien Cochuyt, Cyrille Bougot
@@ -64,6 +64,7 @@ class _GestureVM:
 	displayName: str  #: How the gesture should be displayed
 	normalizedGestureIdentifier: str  #: As per items in inputCore.AllGesturesScriptInfo.gestures
 	canAdd = False  #: adding children is not supported.
+	canChange = True  #: gestures can be changed
 	canRemove = True  #: gestures can be removed
 
 	def __init__(self, normalizedGestureIdentifier: str):
@@ -78,6 +79,7 @@ class _PendingGesture:
 	# Translators: The prompt to enter a gesture in the Input Gestures dialog.
 	displayName = _("Enter input gesture:")
 	canAdd = False
+	canChange = False
 	canRemove = False
 
 	def __repr__(self):
@@ -89,6 +91,7 @@ class _ScriptVM:
 	scriptInfo: inputCore.AllGesturesScriptInfo
 	gestures: List[Union[_GestureVM, _PendingGesture]]
 	canAdd = True  #: able to add gestures that trigger this script
+	canChange = False  #: Scripts can not be changed
 	canRemove = False  #: Scripts can not be removed
 	addedGestures: List[_GestureVM]  #: These will also be in self.gestures
 	#: These will not be in self.gestures anymore. Key is the normalized Gesture Identifier.
@@ -143,6 +146,7 @@ class _CategoryVM:
 	displayName: str  #: Translated display name for the category
 	scripts: List[_ScriptVM]
 	canAdd = False  #: not able to add Scripts
+	canChange = False  #: categories can not be changed
 	canRemove = False  #: categories can not be removed
 
 	def __init__(self, displayName: str, scripts: _ScriptsModel):
@@ -189,6 +193,7 @@ class _PendingEmulatedGestureVM:
 	# Translators: The prompt to enter an emulated gesture in the Input Gestures dialog.
 	displayName = _("Enter gesture to emulate:")
 	canAdd = False
+	canChange = False
 	canRemove = False
 
 	def __repr__(self):
@@ -199,6 +204,7 @@ class _EmuCategoryVM:
 	displayName = inputCore.SCRCAT_KBEMU  #: Translated display name for the gesture emulation category
 	scripts: List[Union[_ScriptVM, _EmulatedGestureVM, _PendingEmulatedGestureVM]]
 	canAdd = True  #: Can add new emulated gestures
+	canChange = False  #: categories can not be changed
 	canRemove = False  #: categories can not be removed
 	addedKbEmulation: List[_EmulatedGestureVM]  #: These will also be in self.scripts
 	#: These will not be in self.scripts anymore. Key is the scriptInfo display name.
@@ -616,6 +622,11 @@ class InputGesturesDialog(SettingsDialog):
 		self.addButton.Bind(wx.EVT_BUTTON, self.onAdd)
 		self.addButton.Disable()
 
+		# Translators: The label of a button to change a gesture in the Input Gestures dialog.
+		self.changeButton = bHelper.addButton(self, label=_("&Change"))
+		self.changeButton.Bind(wx.EVT_BUTTON, self.onChange)
+		self.changeButton.Disable()
+
 		# Translators: The label of a button to remove a gesture in the Input Gestures dialog.
 		self.removeButton = bHelper.addButton(self, label=_("&Remove"))
 		self.removeButton.Bind(wx.EVT_BUTTON, self.onRemove)
@@ -663,7 +674,9 @@ class InputGesturesDialog(SettingsDialog):
 			# get the leaf of the selection
 			item = next((item for item in reversed(selectedItems) if item is not None), None)
 		pendingAdd = self.gesturesVM.isExpectingNewEmuGesture or self.gesturesVM.isExpectingNewGesture
+		pendingChange = self.gesturesVM.isExpectingNewGesture
 		self.addButton.Enabled = bool(item and item.canAdd and not pendingAdd)
+		self.changeButton.Enabled = bool(item and item.canChange and not pendingChange)
 		self.removeButton.Enabled = bool(item and item.canRemove and not pendingAdd)
 
 	def onAdd(self, evt):
@@ -695,22 +708,21 @@ class InputGesturesDialog(SettingsDialog):
 			pendingGesture = scriptVM.createPendingGesture()
 			self.tree.doRefresh(focus=(catVM, scriptVM, pendingGesture))
 			self._refreshButtonState()
+			inputCore.manager._captureFunc = self.makeAddGestureCaptor(catVM, scriptVM)
 
-			def addGestureCaptor(gesture: inputCore.InputGesture):
-				if gesture.isModifier:
-					return False
-				if isinstance(catVM, _EmuCategoryVM):
-					gesName = keyLabels.getKeyCombinationLabel(gesture.normalizedIdentifiers[-1][3:])
-					if gesName == scriptVM.scriptInfo.displayName:
-						# Disallow assigning an emulated gesture to itself
-						return False
-				inputCore.manager._captureFunc = None
-				wx.CallAfter(self._addCaptured, catVM, scriptVM, gesture)
+	def makeAddGestureCaptor(self, catVM: _CategoryVMTypes, scriptVM: _ScriptVMTypes):
+		def addGestureCaptor(gesture: inputCore.InputGesture):
+			if gesture.isModifier:
 				return False
-
-			inputCore.manager._captureFunc = addGestureCaptor
-		else:
-			log.error("unable to do 'add' action for selected item")
+			if isinstance(catVM, _EmuCategoryVM):
+				gesName = keyLabels.getKeyCombinationLabel(gesture.normalizedIdentifiers[-1][3:])
+				if gesName == scriptVM.scriptInfo.displayName:
+					# Disallow assigning an emulated gesture to itself
+					return False
+			inputCore.manager._captureFunc = None
+			wx.CallAfter(self._addCaptured, catVM, scriptVM, gesture)
+			return False
+		return addGestureCaptor
 
 	def _addCaptured(self, catVM: _CategoryVMTypes, scriptVM: _ScriptVMTypes, gesture):
 		gids = gesture.normalizedIdentifiers
@@ -781,6 +793,21 @@ class InputGesturesDialog(SettingsDialog):
 			return
 		self.tree.doRefresh()
 		self._refreshButtonState()
+
+	def onChange(self, evt):
+		selectedItems = self.tree.getSelectedItemData()
+		assert selectedItems is not None
+		catVM, scriptVM, gestureVM = selectedItems
+		if gestureVM is not None and isinstance(scriptVM, _ScriptVM):
+			scriptVM.removeGesture(gestureVM)
+			self.gesturesVM.isExpectingNewGesture = scriptVM
+			pendingGesture = scriptVM.createPendingGesture()
+		else:
+			log.error(f"Unhandled selectionId: {catVM}, {scriptVM}")
+			return
+		self.tree.doRefresh(focus=(catVM, scriptVM, pendingGesture))
+		self._refreshButtonState()
+		inputCore.manager._captureFunc = self.makeAddGestureCaptor(catVM, scriptVM)
 
 	def onReset(self, evt):
 		if (
