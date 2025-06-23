@@ -2567,6 +2567,7 @@ def getFormatFieldSpeech(  # noqa: C901
 	if formatConfig["reportPage"]:
 		pageNumber = attrs.get("page-number")
 		oldPageNumber = attrsCache.get("page-number") if attrsCache is not None else None
+		log.info(f"{pageNumber=} ; {oldPageNumber=}", stack_info=True)
 		if pageNumber and pageNumber != oldPageNumber:
 			# Translators: Indicates the page number in a document.
 			# %s will be replaced with the page number.

@@ -1916,9 +1916,18 @@ class WordDocument(Window, EditableTextBase):
 			lambda: self.WinwordSelectionObject.paragraphFormat.outlineLevel,
 		)
 		style = self.WinwordSelectionObject.style.nameLocal
+		import globalVars as gv;gv.dbg=self
 		ui.message(
 			# Translators: the message when the outline level / style is changed in Microsoft word
 			_("{styleName} style, outline level {outlineLevel}").format(styleName=style, outlineLevel=val),
+		)
+		formatConfig = {k: v for (k, v) in config.conf["documentFormatting"].items()}
+		formatConfig["reportStyle"] = True
+		speech.speakTextInfo(
+			info=self.makeTextInfo(textInfos.POSITION_CARET),
+			# formatConfig=formatConfig,
+			useCache=False,
+			reason=controlTypes.OutputReason.ONLYCACHE,
 		)
 
 	@script(gestures=["kb:control+[", "kb:control+]", "kb:control+shift+,", "kb:control+shift+."])
