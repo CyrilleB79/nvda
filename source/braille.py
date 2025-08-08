@@ -1920,7 +1920,10 @@ class BrailleBuffer(baseObject.AutoPropertyObject):
 				clippedEnd = True
 			elif doWordWrap:
 				try:
-					end = rindex(self.brailleCells, 0, start, end) + 1
+					lastSpaceIndex = rindex(self.brailleCells, 0, start, end + 1)
+					if lastSpaceIndex < end:
+						# The next braille window doesn't start with space.
+						end = rindex(self.brailleCells, 0, start, end) + 1
 				except (ValueError, IndexError):
 					pass  # No space on line
 			self._windowRowBufferOffsets.append((start, end))
@@ -3181,8 +3184,7 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 				self._table = brailleTables.getTable(table)
 			except LookupError:
 				log.error(
-					f"Invalid translation table ({tableName}), "
-					f"falling back to default ({FALLBACK_TABLE}).",
+					f"Invalid translation table ({tableName}), falling back to default ({FALLBACK_TABLE}).",
 				)
 				self._table = brailleTables.getTable(FALLBACK_TABLE)
 
