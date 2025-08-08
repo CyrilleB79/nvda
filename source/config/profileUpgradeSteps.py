@@ -13,19 +13,22 @@ is the current schema version. The argument profile will be a configobj.ConfigOb
 that no information is lost, while updating the ConfigObj to meet the requirements of the new schema.
 """
 
-from logHandler import log
-from config.configFlags import (
-	NVDAKey,
-	ShowMessages,
-	TetherTo,
-	ReportLineIndentation,
-	ReportTableHeaders,
-	ReportCellBorders,
-	OutputMode,
-	TypingEcho,
-)
+import os
+
 import configobj.validate
 from configobj import ConfigObj
+from logHandler import log
+
+from config.configFlags import (
+	NVDAKey,
+	OutputMode,
+	ReportCellBorders,
+	ReportLineIndentation,
+	ReportTableHeaders,
+	ShowMessages,
+	TetherTo,
+	TypingEcho,
+)
 
 
 def upgradeConfigFrom_0_to_1(profile: ConfigObj) -> None:
@@ -459,14 +462,14 @@ def _friendlyNameToEndpointId(friendlyName: str) -> str | None:
 	:param friendlyName: Friendly name of the device to search for.
 	:return: Endpoint ID string of the best match device, or `None` if no device with a matching friendly name is available.
 	"""
-	from utils.mmdevice import _getOutputDevices
+	from utils.mmdevice import getOutputDevices
 	from pycaw.constants import DEVICE_STATE
 
 	states = (DEVICE_STATE.ACTIVE, DEVICE_STATE.UNPLUGGED, DEVICE_STATE.DISABLED, DEVICE_STATE.NOTPRESENT)
 	for state in states:
 		try:
 			return next(
-				device for device in _getOutputDevices(stateMask=state) if device.friendlyName == friendlyName
+				device for device in getOutputDevices(stateMask=state) if device.friendlyName == friendlyName
 			).id
 		except StopIteration:
 			# Proceed to the next device state.
@@ -500,3 +503,97 @@ def _convertTypingEcho(profile: ConfigObj, key: str) -> None:
 		newValue = TypingEcho.EDIT_CONTROLS.value if oldValue else TypingEcho.OFF.value
 		profile["keyboard"][key] = newValue
 		log.debug(f"Converted '{key}' from {oldValue!r} to {newValue} ({TypingEcho(newValue).name}).")
+
+
+def upgradeConfigFrom_15_to_16(profile: ConfigObj) -> None:
+	"""Migrate remote.ini settings into the main config."""
+	remoteIniPath = os.path.join(os.path.dirname(profile.filename), "remote.ini")
+	if not os.path.isfile(remoteIniPath):
+		log.debug(f"No remote.ini found, no action taken. Checked {remoteIniPath}")
+		return
+
+	try:
+		log.debug(f"Loading remote config from {remoteIniPath}")
+		remoteConfig = ConfigObj(remoteIniPath, encoding="UTF-8")
+	except Exception:
+		log.error("Error loading remote.ini", exc_info=True)
+		return
+
+	# Create remote section if it doesn't exist
+	if "remote" not in profile:
+		profile["remote"] = {}
+
+	# Copy all sections from remote.ini
+	for section in remoteConfig:
+		if section not in profile["remote"]:
+			profile["remote"][section] = {}
+		profile["remote"][section].update(remoteConfig[section])
+
+	try:
+		# Backup the old file just in case
+		backupPath = remoteIniPath + ".old"
+		if os.path.exists(backupPath):
+			os.unlink(backupPath)
+		os.rename(remoteIniPath, backupPath)
+		log.debug(f"Backed up remote.ini to {backupPath}")
+	except Exception:
+		log.error("Error backing up remote.ini after migration", exc_info=True)
+
+
+def upgradeConfigFrom_16_to_17(profile: ConfigObj) -> None:
+	"""Rename some of Remote Access's config items.
+
+	Provided as a separate upgrade step so that alpha users don't lose any of their configuration of Remote Access.
+	"""
+	RENAMED_SECTIONS: dict[str, str] = {
+		"controlserver": "controlServer",
+		"seen_motds": "seenMOTDs",
+		"trusted_certs": "trustedCertificates",
+	}
+	RENAMED_ITEMS: dict[str, dict[str, str]] = {
+		"connections": {"last_connected": "lastConnected"},
+		"controlServer": {"connection_type": "connectionMode", "self_hosted": "selfHosted"},
+	}
+	if "remote" not in profile:
+		log.debug("No remote section in config, no action taken.")
+		return
+
+	remoteConfig = profile["remote"]
+	# Rename sections whose names have changed.
+	for oldSectionKey, newSectionKey in RENAMED_SECTIONS.items():
+		if oldSectionKey in remoteConfig:
+			remoteConfig[newSectionKey] = remoteConfig[oldSectionKey]
+			del remoteConfig[oldSectionKey]
+			log.debug(f"Renamed config['remote']['{oldSectionKey}'] to config['remote']['{newSectionKey}'].")
+
+	# Rename items (leaves) whose names have changed.
+	for sectionKey, renamedItems in RENAMED_ITEMS.items():
+		if (section := remoteConfig.get(sectionKey)) is not None:
+			for oldItemKey, newItemKey in renamedItems.items():
+				if oldItemKey in section:
+					section[newItemKey] = section[oldItemKey]
+					del section[oldItemKey]
+					log.debug(
+						f"Renamed config['remote']['{sectionKey}']['{oldItemKey}'] to config['remote']['{sectionKey}']['{newItemKey}'].",
+					)
+
+
+def upgradeConfigFrom_17_to_18(profile: ConfigObj) -> None:
+	"""Add dotPad to excluded braille displays by default due to generic USB PID/VID."""
+	# Only add to excludedDisplays if the auto section doesn't exist or excludedDisplays is empty/default
+	if "braille" not in profile:
+		profile["braille"] = {}
+	if "auto" not in profile["braille"]:
+		profile["braille"]["auto"] = {}
+	if "excludedDisplays" not in profile["braille"]["auto"]:
+		profile["braille"]["auto"]["excludedDisplays"] = []
+
+	# Only add dotPad if it's not already in the list
+	excludedDisplays = profile["braille"]["auto"]["excludedDisplays"]
+
+	if "dotPad" not in excludedDisplays:
+		excludedDisplays.append("dotPad")
+		log.debug(
+			"dotPad added to braille display auto detection excluded displays due to generic USB PID/VID. "
+			f"List is now: {excludedDisplays}",
+		)

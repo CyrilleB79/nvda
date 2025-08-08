@@ -24,6 +24,7 @@ http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 #include <mmdeviceapi.h>
 #include <common/log.h>
 #include <random>
+#include "silenceDetect.h"
 
 /**
  * Support for audio playback using WASAPI.
@@ -194,12 +195,15 @@ class WasapiPlayer {
 	HRESULT resume();
 	HRESULT setChannelVolume(unsigned int channel, float level);
 
+	void startTrimmingLeadingSilence(bool start);
+
 	private:
 	void maybeFireCallback();
 
 	// Reset our state due to being stopped. This runs on the feeder thread
 	// rather than on the thread which called stop() because writing to a vector
-	// isn't thread safe.
+	// isn't thread safe. We also reset the stream here because this can't be done
+	// in stop() if the feeder thread is currently writing to the buffer.
 	void completeStop();
 
 	// Convert frames into ms.
@@ -245,6 +249,7 @@ class WasapiPlayer {
 	unsigned int defaultDeviceChangeCount;
 	unsigned int deviceStateChangeCount;
 	bool isUsingPreferredDevice = false;
+	bool isTrimmingLeadingSilence = false;
 };
 
 WasapiPlayer::WasapiPlayer(wchar_t* endpointId, WAVEFORMATEX format,
@@ -342,6 +347,32 @@ HRESULT WasapiPlayer::feed(unsigned char* data, unsigned int size,
 		return true;
 	};
 
+	bool shouldInsertSilentFrame = false;
+	if (isTrimmingLeadingSilence && data && size > 0) {
+		size_t silenceSize = SilenceDetect::getLeadingSilenceSize(&format, data, size);
+		if (silenceSize >= size) {
+			// The whole chunk is silence. Continue checking for silence in the next chunk.
+			// We cannot just skip the whole chunk, however,
+			// because then the rest of this function will not perform some tasks,
+			// such as opening the device or checking for callbacks.
+			// Add one silent frame to be played, so those things work as usual.
+			shouldInsertSilentFrame = true;
+			remainingFrames = 1;
+		} else {
+			// Silence ends in this chunk. Skip the silence and continue.
+			data += silenceSize;
+			size -= silenceSize;
+			remainingFrames = size / format.nBlockAlign;
+			isTrimmingLeadingSilence = false;  // Stop checking for silence
+
+			// Insert one silent frame before the trimmed audio in this chunk.
+			// Not doing so may cause the beginning of the audio to be chopped off.
+			// See: https://github.com/nvaccess/nvda/discussions/17697
+			shouldInsertSilentFrame = true;
+			remainingFrames++;
+		}
+	}
+
 	while (remainingFrames > 0) {
 		UINT32 paddingFrames;
 
@@ -390,13 +421,26 @@ HRESULT WasapiPlayer::feed(unsigned char* data, unsigned int size,
 			}
 		}
 		// We might have more frames than will fit in the buffer. Send what we can.
+		// If we need to insert a silent frame, the frame counts towards the total frame count,
+		// but does not count towards the total byte count, as it's not in the provided data buffer.
 		const UINT32 sendFrames = std::min(remainingFrames,
 			bufferFrames - paddingFrames);
-		const UINT32 sendBytes = sendFrames * format.nBlockAlign;
+		const UINT32 sendBytes = (sendFrames - (shouldInsertSilentFrame ? 1 : 0))
+			* format.nBlockAlign;
 		BYTE* buffer;
 		hr = render->GetBuffer(sendFrames, &buffer);
 		if (FAILED(hr)) {
 			return hr;
+		}
+		if (shouldInsertSilentFrame) {
+			// If needed, insert one frame of silence at the beginning
+			if (format.wFormatTag == WAVE_FORMAT_PCM && format.wBitsPerSample == 8) {
+				memset(buffer, 0x80, format.nBlockAlign);
+			} else {
+				memset(buffer, 0, format.nBlockAlign);
+			}
+			buffer += format.nBlockAlign;
+			shouldInsertSilentFrame = false;
 		}
 		if (data) {
 			memcpy(buffer, data, sendBytes);
@@ -543,22 +587,21 @@ bool WasapiPlayer::didPreferredDeviceBecomeAvailable() {
 }
 
 HRESULT WasapiPlayer::stop() {
-	playState = PlayState::stopping;
 	HRESULT hr = client->Stop();
+	// It's important that we set playState *after*
+	// calling client->Stop() because otherwise, the feeder thread might see the
+	// playState change and call client->Reset() before client->Stop() runs,
+	// causing AUDCLNT_E_NOT_STOPPED.
+	playState = PlayState::stopping;
 	// If the device has been invalidated, it has already stopped. Just ignore
 	// this and behave as if we were successful to avoid a cascade of breakage.
 	// feed() will attempt to reopen the device next time it is called.
 	if (
 		hr != AUDCLNT_E_DEVICE_INVALIDATED
 		&& hr != AUDCLNT_E_NOT_INITIALIZED
+		&& FAILED(hr)
 	) {
-		if (FAILED(hr)) {
-			return hr;
-		}
-		hr = client->Reset();
-		if (FAILED(hr)) {
-			return hr;
-		}
+		return hr;
 	}
 	// If there is a feed/sync call waiting, wake it up so it can immediately
 	// return to the caller.
@@ -567,6 +610,14 @@ HRESULT WasapiPlayer::stop() {
 }
 
 void WasapiPlayer::completeStop() {
+	HRESULT hr = client->Reset();
+	if (FAILED(hr)) {
+		// We must not use LOG_ERROR here because that plays a sound and we might be
+		// in the middle of stopping our sound player.
+		LOG_DEBUGWARNING(L"Couldn't reset stream: " << hr);
+		// We deliberately continue here. If Reset failed, the stream is probably
+		// already cleared or unusable anyway. We should always reset our state.
+	}
 	nextFeedId = 0;
 	sentFrames = 0;
 	feedEnds.clear();
@@ -641,6 +692,10 @@ HRESULT WasapiPlayer::setChannelVolume(unsigned int channel, float level) {
 		return hr;
 	}
 	return volume->SetChannelVolume(channel, level);
+}
+
+void WasapiPlayer::startTrimmingLeadingSilence(bool start) {
+	isTrimmingLeadingSilence = start;
 }
 
 HRESULT WasapiPlayer::disableCommunicationDucking(IMMDevice* device) {
@@ -837,6 +892,10 @@ HRESULT wasPlay_setChannelVolume(
 	float level
 ) {
 	return player->setChannelVolume(channel, level);
+}
+
+void wasPlay_startTrimmingLeadingSilence(WasapiPlayer* player, bool start) {
+	player->startTrimmingLeadingSilence(start);
 }
 
 /**
