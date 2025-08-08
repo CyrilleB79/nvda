@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2017-2023 NV Access Limited, Babbage B.V., Cyrille Bougot
+# Copyright (C) 2017-2025 NV Access Limited, Babbage B.V., Cyrille Bougot, Leonard de Ruijter
 
 """NVDA unit testing.
 All unit tests should reside within this package and should be
@@ -14,7 +14,6 @@ Methods in test classes should have a C{test_} prefix.
 ### Ugly bootstrapping code.
 
 import os
-import sys
 
 # The path to the unit tests.
 UNIT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,11 +21,6 @@ UNIT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOP_DIR = os.path.dirname(os.path.dirname(UNIT_DIR))
 # The path to the NVDA "source" directory.
 SOURCE_DIR = os.path.join(TOP_DIR, "source")
-# Let us import modules from the NVDA source.
-sys.path.insert(1, SOURCE_DIR)
-# Suppress Flake8 warning F401 (module imported but unused)
-# as this module is imported to expand the system path.
-import sourceEnv  # noqa: E402, F401
 
 # Apply several monkey patches to comtypes to make sure that it would search for generated interfaces
 # rather than creating them on the fly. Also stop module being never than typelib error, seen when
@@ -100,13 +94,13 @@ config.conf["braille"]["display"] = "noBraille"
 braille.initialize()
 
 
-# For braille unit tests, we need to enable the braille handler by providing it a cell count
-# Give the display 40 cells
-def getFakeCellCount(numCells: int) -> int:
-	return 40
+# For braille unit tests, we need to enable the braille handler by providing it display dimensions
+# Give the display one row with 40 cells
+def getFakeDisplayDimensions(dimensions: braille.DisplayDimensions) -> braille.DisplayDimensions:
+	return braille.DisplayDimensions(numRows=1, numCols=40)
 
 
-braille.filter_displaySize.register(getFakeCellCount)
+braille.filter_displayDimensions.register(getFakeDisplayDimensions)
 _original_handleReviewMove = braille.handler.handleReviewMove
 
 
@@ -154,7 +148,5 @@ api.setDesktopObject(phObj)
 
 # Stub speech functions to make them no-ops.
 # Eventually, these should keep track of calls so we can make assertions.
-import speech  # noqa: E402
-
 speech.speak = lambda speechSequence, symbolLevel=None, priority=None: None
 speech.speakSpelling = lambda text, locale=None, useCharacterDescriptions=False, priority=None: None

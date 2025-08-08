@@ -1,5 +1,6 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2024 NV Access Limited, Manish Agrawal, Derek Riemer, Babbage B.V., Cyrille Bougot
+# Copyright (C) 2006-2025 NV Access Limited, Manish Agrawal, Derek Riemer, Babbage B.V., Cyrille Bougot,
+# Leonard de Ruijter
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -20,6 +21,7 @@ import comtypes.automation
 import colorsys
 import eventHandler
 import braille
+import scriptHandler
 from scriptHandler import script
 import languageHandler
 import ui
@@ -39,12 +41,14 @@ from controlTypes.formatFields import TextAlign
 import treeInterceptorHandler
 import browseMode
 from . import Window
-from ..behaviors import EditableTextWithoutAutoSelectDetection
+from ..behaviors import EditableTextBase, EditableTextWithoutAutoSelectDetection
 from . import _msOfficeChart
+from ._msOffice import MsoHyperlink
 import locationHelper
 from enum import IntEnum
 import documentBase
 from utils.displayString import DisplayStringIntEnum
+from utils.urlUtils import _LinkData
 
 if TYPE_CHECKING:
 	import inputCore
@@ -148,6 +152,17 @@ wdAlignParagraphLeft = 0
 wdAlignParagraphCenter = 1
 wdAlignParagraphRight = 2
 wdAlignParagraphJustify = 3
+
+
+class WdOutlineLevel(IntEnum):
+	"""Outline level of a paragraph.
+
+	.. seealso:: ```WdOutlineLevel`` enumeration <https://learn.microsoft.com/en-us/office/vba/api/word.wdoutlinelevel>`_
+	"""
+
+	BODY_TEXT = 10
+
+
 # Units
 wdCharacter = 1
 wdWord = 2
@@ -264,6 +279,54 @@ wdThemeColorMainLight1 = 1
 wdThemeColorMainLight2 = 3
 wdThemeColorText1 = 13
 wdThemeColorText2 = 15
+
+
+class WdCharacterCase(DisplayStringIntEnum):
+	# Word enumeration that specifies the case of the text in the specified range.
+	# See https://docs.microsoft.com/en-us/office/vba/api/word.wdcharactercase
+
+	# No case: Returned when the selection range contains only case-insensitive characters.
+	# Note: MS also uses it as a command for "next case" (Toggles between uppercase, lowercase, and sentence
+	# case).
+	NO_CASE = -1
+	LOWER_CASE = 0
+	UPPER_CASE = 1
+	TITLE_WORD = 2
+	TITLE_SENTENCE = 4
+	# Mixed case: Unorganized mix of lower and upper case.
+	# Note: MS also uses it as a command for toggle case (Switches uppercase characters to lowercase, and
+	# lowercase characters to uppercase)
+	MIXED_CASE = 5
+	HALF_WIDTH = 6  # Used for Japanese characters.
+	FULL_WIDTH = 7  # Used for Japanese characters.
+	KATAKANA = 8  # Used with Japanese text.
+	HIRAGANA = 9  # Used with Japanese text.
+
+	@property
+	def _displayStringLabels(self) -> dict[Self, str]:
+		return {
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.NO_CASE: _("No case"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.LOWER_CASE: _("Lowercase"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.UPPER_CASE: _("Uppercase"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.TITLE_WORD: _("Each word capitalized"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.TITLE_SENTENCE: _("Sentence case"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.MIXED_CASE: _("Mixed case"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.HALF_WIDTH: _("Half width"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.FULL_WIDTH: _("Full width"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.KATAKANA: _("Katakana"),
+			# Translators: a Microsoft Word character case type
+			WdCharacterCase.HIRAGANA: _("Hiragana"),
+		}
+
 
 # Word Field types
 FIELD_TYPE_REF = 3  # cross reference field
@@ -804,14 +867,14 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 						initialDocument=self.obj,
 					),
 				)
+
 		# Handle activating links.
+		link = self._getLinkAtCaretPosition()
+		if link:
+			link.follow()
+			return
 		# It is necessary to expand to word to get a link as the link's first character is never actually in the link!
 		tempRange = self._rangeObj.duplicate
-		tempRange.expand(wdWord)
-		links = tempRange.hyperlinks
-		if links.count > 0:
-			links[1].follow()
-			return
 		tempRange.expand(wdParagraph)
 		fields = tempRange.fields
 		for field in (fields.item(i) for i in range(1, fields.count + 1)):
@@ -846,6 +909,42 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 			speech.speakTextInfo(tiCopy, reason=controlTypes.OutputReason.FOCUS)
 			braille.handler.handleCaretMove(self)
 			return
+
+	def _getLinkAtCaretPosition(self) -> comtypes.client.lazybind.Dispatch | None:
+		# It is necessary to expand to word to get a link as the link's first character is never actually in the link!
+		tempRange = self._rangeObj.duplicate
+		tempRange.expand(wdWord)
+		links = tempRange.hyperlinks
+		if links.count > 0:
+			return links[1]
+		return None
+
+	def _getShapeAtCaretPosition(self) -> comtypes.client.lazybind.Dispatch | None:
+		# It is necessary to expand to word to get a shape as the link's first character is never actually in the link!
+		tempRange = self._rangeObj.duplicate
+		tempRange.expand(wdWord)
+		shapes = tempRange.InlineShapes
+		if shapes.count > 0:
+			return shapes[1]
+		return None
+
+	def _getLinkDataAtCaretPosition(self) -> _LinkData | None:
+		link = self._getLinkAtCaretPosition()
+		if not link:
+			return None
+		match link.Type:
+			case MsoHyperlink.RANGE:
+				text = link.TextToDisplay
+			case MsoHyperlink.INLINE_SHAPE:
+				shape = self._getShapeAtCaretPosition()
+				text = shape.AlternativeText
+			case _:
+				log.debugWarning(f"No text to display for link type {link.Type}")
+				text = None
+		return _LinkData(
+			displayText=text,
+			destination=link.Address,
+		)
 
 	def _expandToLineAtCaret(self):
 		lineStart = ctypes.c_int()
@@ -1026,6 +1125,10 @@ class WordDocumentTextInfo(textInfos.TextInfo):
 				field["name"] = name
 				field["alwaysReportName"] = True
 				field["role"] = controlTypes.Role.FRAME
+		if field.pop("collapsedState", None) == "true":
+			if "states" not in field:
+				field["states"] = set()
+			field["states"].add(controlTypes.State.COLLAPSED)
 		newField = LazyControlField_RowAndColumnHeaderText(self)
 		newField.update(field)
 		return newField
@@ -1350,7 +1453,11 @@ class WordDocumentTreeInterceptor(browseMode.BrowseModeDocumentTreeInterceptor):
 		while True:
 			if not isFirst or includeCurrent:
 				level = rangeObj.paragraphs[1].outlineLevel
-				if level and 0 < level < 10 and (not neededLevel or neededLevel == level):
+				if (
+					level
+					and 0 < level < WdOutlineLevel.BODY_TEXT
+					and (not neededLevel or neededLevel == level)
+				):
 					rangeObj.expand(wdParagraph)
 					yield WordDocumentHeadingQuickNavItem(
 						nodeType,
@@ -1482,7 +1589,9 @@ class WordDocumentTreeInterceptor(browseMode.BrowseModeDocumentTreeInterceptor):
 	}
 
 
-class WordDocument(Window):
+class WordDocument(Window, EditableTextBase):
+	_supportsSentenceNavigation = True
+
 	def winwordColorToNVDAColor(self, val):
 		if val >= 0:
 			# normal RGB value
@@ -1659,6 +1768,34 @@ class WordDocument(Window):
 		else:
 			# Translators: a message when toggling formatting to 'No capital' in Microsoft word
 			ui.message(_("Caps off"))
+
+	@script(gesture="kb:shift+f3")
+	def script_changeCase(self, gesture: "inputCore.InputGesture"):
+		if (
+			# We cannot fetch the Word object model, so we therefore cannot report the format change.
+			# The object model may be unavailable because this is a pure UIA implementation such as Windows 10 Mail,
+			# or its within Windows Defender Application Guard.
+			not self.WinwordSelectionObject
+			# Or we do not want to apply the delay due in case of multipe repetition of the script.
+			or scriptHandler.isScriptWaiting()
+		):
+			# Just let the gesture through and don't report anything.
+			return gesture.send()
+
+		def action():
+			gesture.send()
+			# The object model for the "case" property is not fully reliable when using switch case command. During
+			# the switch, the "case" property quickly transitions through "lower case" or "no case", especially in
+			# Outlook. Thus we artificially add an empirical delay after the gesture has been send and before the
+			# first check.
+			time.sleep(0.15)
+
+		val = self._WaitForValueChangeForAction(
+			action=action,
+			fetcher=lambda: self.WinwordSelectionObject.Range.Case,
+		)
+		# Translators: a message when changing case in Microsoft Word
+		ui.message(WdCharacterCase(val).displayString)
 
 	@script(gestures=["kb:control+l", "kb:control+e", "kb:control+r", "kb:control+j"])
 	def script_toggleAlignment(self, gesture):
@@ -1932,12 +2069,53 @@ class WordDocument(Window):
 		# Translators: a message when toggling paragraph spacing in Microsoft word
 		ui.message(_("{val:g} pt space before paragraph").format(val=val))
 
+	@script(
+		gestures=(
+			"kb:alt+home",
+			"kb:alt+end",
+			"kb:alt+pageUp",
+			"kb:alt+pageDown",
+		),
+	)
+	def script_caret_moveByCell(self, gesture: "inputCore.InputGesture") -> None:
+		info = self.makeTextInfo(textInfos.POSITION_SELECTION)
+		inTable = self._inTable(info)
+		if not inTable:
+			gesture.send()
+			return
+		oldSelection = info.start, info.end
+		gesture.send()
+		start = time.time()
+		retryInterval = 0.01
+		maxTimeout = 0.15
+		elapsed = 0
+		while True:
+			if scriptHandler.isScriptWaiting():
+				# Prevent lag if keys are pressed rapidly
+				return
+			info = self.makeTextInfo(textInfos.POSITION_SELECTION)
+			newSelection = info.start, info.end
+			if newSelection != oldSelection:
+				elapsed = time.time() - start
+				log.debug(f"Detected new selection after {elapsed} sec")
+				break
+			elapsed = time.time() - start
+			if elapsed >= maxTimeout:
+				log.debug(f"Canceled detecting new selection after {elapsed} sec")
+				break
+			time.sleep(retryInterval)
+		info.expand(textInfos.UNIT_CELL)
+		speech.speakTextInfo(info, reason=controlTypes.OutputReason.FOCUS)
+		braille.handler.handleCaretMove(self)
+
 	def initOverlayClass(self):
 		if isinstance(self, EditableTextWithoutAutoSelectDetection):
 			self.bindGesture("kb:alt+shift+home", "caret_changeSelection")
 			self.bindGesture("kb:alt+shift+end", "caret_changeSelection")
 			self.bindGesture("kb:alt+shift+pageUp", "caret_changeSelection")
 			self.bindGesture("kb:alt+shift+pageDown", "caret_changeSelection")
+			self.bindGesture("kb:f8", "caret_changeSelection")
+			self.bindGesture("kb:shift+f8", "caret_changeSelection")
 
 	__gestures = {
 		"kb:control+pageUp": "caret_moveByLine",

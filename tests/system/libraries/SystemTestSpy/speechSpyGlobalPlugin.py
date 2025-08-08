@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2018-2022 NV Access Limited
+# Copyright (C) 2018-2025 NV Access Limited, Leonard de Ruijter
 # This file may be used under the terms of the GNU General Public License, version 2 or later.
 # For more details see: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ from typing import (
 	Optional,
 	Tuple,
 )
-
+from braille import DisplayDimensions
 import core
 import globalPluginHandler
 import threading
@@ -91,7 +91,10 @@ class NVDASpyLib:
 		# This file (`speechSpyGlobalPlugin.py`) is moved to
 		# "scratchpad/globalPlugins/speechSpyGlobalPlugin/__init__.py"
 		# Import path must be valid after `speechSpySynthDriver.py` is moved to "scratchpad/synthDrivers/"
-		from synthDrivers.speechSpySynthDriver import post_speech
+		from synthDrivers.speechSpySynthDriver import post_speech  # type: ignore[reportMissingImports]
+
+		if typing.TYPE_CHECKING:
+			from .speechSpySynthDriver import post_speech
 
 		post_speech.register(self._onNvdaSpeech)
 
@@ -169,6 +172,12 @@ class NVDASpyLib:
 			)
 		self.fakeTranslations.translationResults[invariantString] = replacementString
 
+	def getLanguageDescription(self, lang: str) -> str:
+		import languageHandler
+
+		langDesc = languageHandler.getLanguageDescription(lang)
+		return langDesc
+
 	def queueNVDAMainThreadCrash(self):
 		from queueHandler import queueFunction, eventQueue
 
@@ -189,7 +198,7 @@ class NVDASpyLib:
 		self._isNvdaStartupComplete = True
 		import braille
 
-		braille.filter_displaySize.register(self.getBrailleCellCount)
+		braille.filter_displayDimensions.register(self.getBrailleDisplayDimensions)
 		braille.pre_writeCells.register(self._onNvdaBraille)
 
 	def _onNvdaBraille(self, rawText: str):
@@ -266,8 +275,8 @@ class NVDASpyLib:
 	def setBrailleCellCount(self, brailleCellCount: int):
 		self._brailleCellCount = brailleCellCount
 
-	def getBrailleCellCount(self, value: int):
-		return self._brailleCellCount
+	def getBrailleDisplayDimensions(self, value: DisplayDimensions) -> DisplayDimensions:
+		return DisplayDimensions(1, self._brailleCellCount)
 
 	def _getBrailleAtIndex(self, brailleIndex: int) -> str:
 		with self._brailleLock:
@@ -533,7 +542,7 @@ class NVDASpyLib:
 			queueHandler.queueFunction(queueHandler.eventQueue, _setQueueProcessed)
 			_blockUntilConditionMet(
 				getValue=lambda: queueProcessed,
-				giveUpAfterSeconds=self._minTimeout(5),
+				giveUpAfterSeconds=self._minTimeout(10),
 				errorMessage="Timed out waiting for key to be processed",
 			)
 
@@ -543,7 +552,7 @@ class NVDASpyLib:
 			log.debug("Waiting for core to sleep, to ensure all resulting events have been processed.")
 			_blockUntilConditionMet(
 				getValue=lambda: watchdog.isCoreAsleep(),
-				giveUpAfterSeconds=self._minTimeout(5),
+				giveUpAfterSeconds=self._minTimeout(10),
 				errorMessage="Timed out waiting for core to sleep again",
 			)
 			log.debug("Core sleeping")

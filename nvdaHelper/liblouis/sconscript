@@ -53,14 +53,14 @@ def getLouisVersion():
 
 
 # Liblouis is build with Clang, as Microsoft Visual C++ is unable to build C99 code.
-clangDirs = glob.glob(os.path.join(find_vc_pdir(env, env.get("MSVC_VERSION")), r"Tools\Llvm\bin"))
+clangDirs = glob.glob(os.path.join(find_vc_pdir(env.get("MSVC_VERSION"), env), r"Tools\Llvm\bin"))
 if len(clangDirs) == 0:
 	raise RuntimeError(
 		"Could not find the Clang compiler. "
 		"Perhaps the C++ Clang tools for Windows component in visual Studio is not installed"
 	)
 env["CC"] = "clang-cl"
-env["M4"] = str(env.File("#miscdeps/tools/m4.exe"))
+env["M4"] = f'"{env.File("#miscdeps/tools/m4.exe")}"'
 # Liblouis disables GNU extensions for m4
 env.Append(M4FLAGS="-G")
 # Don't analyze the code as not our project

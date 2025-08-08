@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2007-2023 NV Access Limited, Babbage B.V., James Teh, Leonard de Ruijter,
+# Copyright (C) 2007-2025 NV Access Limited, Babbage B.V., James Teh, Leonard de Ruijter,
 # Thomas Stivers, Accessolutions, Julien Cochuyt, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
@@ -9,7 +9,6 @@ from typing import (
 	Callable,
 	Generator,
 	Union,
-	cast,
 )
 from collections.abc import Generator  # noqa: F811
 import os
@@ -19,6 +18,7 @@ import winsound
 import time
 import weakref
 import re
+from comtypes import COMError
 
 import wx
 import core
@@ -444,7 +444,7 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		return config.conf["virtualBuffers"]["trapNonCommandGestures"]
 
 	def script_trapNonCommandGesture(self, gesture):
-		winsound.PlaySound("default", 1)
+		winsound.MessageBeep()
 
 	singleLetterNavEnabled = True  #: Whether single letter navigation scripts should be active (true) or if these letters should fall to the application.
 
@@ -628,6 +628,34 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		if key is not None:
 			cls.__gestures["kb:shift+%s" % key] = scriptName
 
+	@classmethod
+	def _addQuickNavHeading(
+		cls,
+		levelRange: range,
+	):
+		for i in levelRange:
+			if not (0 < i < 10):
+				log.error(
+					f"Could not add quick navigation key for heading level {i}; only levels 1 to 9 supported.",
+				)
+				continue
+			cls.addQuickNav(
+				f"heading{i}",
+				key=f"{i}",
+				# Translators: Input help message for a quick navigation command in browse mode.
+				# {i} will be replaced with the level number.
+				nextDoc=_("Moves to the next heading at level {i}").format(i=i),
+				# Translators: Message presented when the browse mode element is not found.
+				# {i} will be replaced with the level number.
+				nextError=_("No next heading at level {i}").format(i=i),
+				# Translators: Input help message for a quick navigation command in browse mode.
+				# {i} will be replaced with the level number.
+				prevDoc=_("Moves to the previous heading at level {i}").format(i=i),
+				# Translators: Message presented when the browse mode element is not found.
+				# {i} will be replaced with the level number.
+				prevError=_("No previous heading at level {i}").format(i=i),
+			)
+
 	def script_elementsList(self, gesture):
 		# We need this to be a modal dialog, but it mustn't block this script.
 		def run():
@@ -694,11 +722,8 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		else:
 			self._activateNVDAObject(obj)
 
-	def script_activatePosition(self, gesture):
-		if config.conf["virtualBuffers"]["autoFocusFocusableElements"]:
-			self._activatePosition()
-		else:
-			self._focusLastFocusableObject(activatePosition=True)
+	def script_activatePosition(self, gesture: inputCore.InputGesture) -> None:
+		self._focusLastFocusableObject(activatePosition=True)
 
 	# Translators: the description for the activatePosition script on browseMode documents.
 	script_activatePosition.__doc__ = _("Activates the current object in the document")
@@ -725,10 +750,9 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 			# Make sure we activate the object at the caret, which is not necessarily focusable.
 			self._activatePosition()
 
-	def script_passThrough(self, gesture):
-		if not config.conf["virtualBuffers"]["autoFocusFocusableElements"]:
-			self._focusLastFocusableObject()
-			api.processPendingEvents(processEventQueue=True)
+	def script_passThrough(self, gesture: inputCore.InputGesture) -> None:
+		self._focusLastFocusableObject()
+		api.processPendingEvents(processEventQueue=True)
 		gesture.send()
 
 	def script_disablePassThrough(self, gesture):
@@ -744,13 +768,13 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 
 	script_disablePassThrough.ignoreTreeInterceptorPassThrough = True
 
-	def _set_disableAutoPassThrough(self, state):
+	def _set_disableAutoPassThrough(self, state: bool):
 		# If the user manually switches to focus mode with NVDA+space, that enables
-		# pass-through and disables auto pass-through. If auto focusing of focusable
-		# elements is disabled, NVDA won't have synced the focus to the browse mode
-		# cursor. However, since the user is switching to focus mode, they probably
+		# pass-through and disables auto pass-through.
+		# NVDA doesn't automatically sync the focus to the browse mode
+		# cursor, however, since the user is switching to focus mode, they probably
 		# want to interact with the focus, so sync the focus here.
-		if state and not config.conf["virtualBuffers"]["autoFocusFocusableElements"] and self.passThrough:
+		if state and self.passThrough:
 			self._focusLastFocusableObject()
 		self._disableAutoPassThrough = state
 
@@ -792,78 +816,7 @@ qn(
 	# Translators: Message presented when the browse mode element is not found.
 	prevError=_("no previous heading"),
 )
-qn(
-	"heading1",
-	key="1",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 1"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 1"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 1"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 1"),
-)
-qn(
-	"heading2",
-	key="2",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 2"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 2"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 2"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 2"),
-)
-qn(
-	"heading3",
-	key="3",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 3"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 3"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 3"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 3"),
-)
-qn(
-	"heading4",
-	key="4",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 4"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 4"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 4"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 4"),
-)
-qn(
-	"heading5",
-	key="5",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 5"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 5"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 5"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 5"),
-)
-qn(
-	"heading6",
-	key="6",
-	# Translators: Input help message for a quick navigation command in browse mode.
-	nextDoc=_("moves to the next heading at level 6"),
-	# Translators: Message presented when the browse mode element is not found.
-	nextError=_("no next heading at level 6"),
-	# Translators: Input help message for a quick navigation command in browse mode.
-	prevDoc=_("moves to the previous heading at level 6"),
-	# Translators: Message presented when the browse mode element is not found.
-	prevError=_("no previous heading at level 6"),
-)
+BrowseModeTreeInterceptor._addQuickNavHeading(range(1, 10))
 qn(
 	"table",
 	key="t",
@@ -1299,6 +1252,8 @@ class ElementsListDialog(
 
 	lastSelectedElementType = 0
 
+	shouldSuspendConfigProfileTriggers = True
+
 	def __init__(self, document):
 		super().__init__(
 			parent=gui.mainFrame,
@@ -1345,7 +1300,7 @@ class ElementsListDialog(
 		# in the browse mode Elements List dialog.
 		filterText = _("Filter b&y:")
 		labeledCtrl = gui.guiHelper.LabeledControlHelper(self, filterText, wx.TextCtrl)
-		self.filterEdit = cast(wx.TextCtrl, labeledCtrl.control)
+		self.filterEdit = labeledCtrl.control
 		self.filterTimer: Optional[wx.CallLater] = None
 		self.filterEdit.Bind(wx.EVT_TEXT, self.onFilterEditTextChange)
 		contentsSizer.Add(labeledCtrl.sizer)
@@ -1794,14 +1749,8 @@ class BrowseModeDocumentTreeInterceptor(
 				and focusObj != api.getFocusObject()
 				and self._shouldSetFocusToObj(focusObj)
 			):
-				followBrowseModeFocus = config.conf["virtualBuffers"]["autoFocusFocusableElements"]
-				if followBrowseModeFocus or self.passThrough:
+				if self.passThrough:
 					focusObj.setFocus()
-					# Track this object as NVDA having just requested setting focus to it
-					# So that when NVDA does receive the focus event for it
-					# It can handle it quietly rather than speaking the new focus.
-					if followBrowseModeFocus:
-						self._objPendingFocusBeforeActivate = obj
 			# Queue the reporting of pass through mode so that it will be spoken after the actual content.
 			queueHandler.queueFunction(queueHandler.eventQueue, reportPassThrough, self)
 
@@ -1863,12 +1812,9 @@ class BrowseModeDocumentTreeInterceptor(
 	currentExpandedControl = None  #: an NVDAObject representing the control that has just been expanded with the collapseOrExpandControl script.
 
 	def script_collapseOrExpandControl(self, gesture: inputCore.InputGesture):
-		if not config.conf["virtualBuffers"]["autoFocusFocusableElements"]:
-			self._focusLastFocusableObject()
-			# Give the application time to focus the control.
-			core.callLater(100, self._collapseOrExpandControl_scriptHelper, gesture)
-		else:
-			self._collapseOrExpandControl_scriptHelper(gesture)
+		self._focusLastFocusableObject()
+		# Give the application time to focus the control.
+		core.callLater(100, self._collapseOrExpandControl_scriptHelper, gesture)
 
 	def _collapseOrExpandControl_scriptHelper(self, gesture: inputCore.InputGesture):
 		oldFocus = api.getFocusObject()
@@ -1999,6 +1945,12 @@ class BrowseModeDocumentTreeInterceptor(
 			# and this was the last non-root node with focus, so ignore this focus event.
 			# Otherwise, if the user switches away and back to this document, the cursor will jump to this node.
 			# This is not ideal if the user was positioned over a node which cannot receive focus.
+			# #17501: Even though we're ignoring this event, we still need to call
+			# _postGainFocus. This does things such as initialize auto select detection
+			# for editable text controls. Without this, the focus object might not
+			# behave correctly (e.g. text selection changes might not be reported) if the
+			# user switches to focus mode with this object still focused.
+			self._postGainFocus(obj)
 			return
 		if obj == self.rootNVDAObject:
 			if self.passThrough:
@@ -2044,15 +1996,6 @@ class BrowseModeDocumentTreeInterceptor(
 		if not self._hadFirstGainFocus or previousFocusObjIsDefunct:
 			# still initializing  or the old focus is dead.
 			isOverlapping = False
-		elif config.conf["virtualBuffers"]["autoFocusFocusableElements"]:
-			# if this focus event was caused by NVDA setting the focus itself
-			# Due to auto focus focusable elements option being enabled,
-			# And we detect that the caret was already positioned within the focus.
-			# Note that this is not the default and may be removed in future.
-			caretInfo = self.makeTextInfo(textInfos.POSITION_CARET)
-			# Expand to one character, as isOverlapping() doesn't treat, for example, (4,4) and (4,5) as overlapping.
-			caretInfo.expand(textInfos.UNIT_CHARACTER)
-			isOverlapping = focusInfo.isOverlapping(caretInfo)
 		else:
 			# if this focus event was caused by NVDA setting the focus itself
 			# due to activation or applications key etc.
@@ -2091,12 +2034,7 @@ class BrowseModeDocumentTreeInterceptor(
 				# This focus change was caused by a virtual caret movement, so don't speak the focused node to avoid double speaking.
 				# However, we still want to update the speech property cache so that property changes will be spoken properly.
 				speech.speakObject(obj, OutputReason.ONLYCACHE)
-				if config.conf["virtualBuffers"]["autoFocusFocusableElements"]:
-					# As we do not call nextHandler which would trigger the vision framework to handle gain focus,
-					# we need to call it manually here.
-					# Note: this is usually called after the caret movement.
-					vision.handler.handleGainFocus(obj)
-				elif (
+				if (
 					objPendingFocusBeforeActivate
 					and obj == objPendingFocusBeforeActivate
 					and obj is not objPendingFocusBeforeActivate
@@ -2128,10 +2066,10 @@ class BrowseModeDocumentTreeInterceptor(
 	) -> bool:
 		"""Handle scrolling the browseMode document to a given object in response to an event.
 		Subclasses should call this from an event which indicates that the document has scrolled.
-		@postcondition: The virtual caret is moved to L{obj} and the buffer content for L{obj} is reported.
-		@param obj: The object to which the document should scroll.
-		@return: C{True} if the document was scrolled, C{False} if not.
-		@note: If C{False} is returned, calling events should probably call their nextHandler.
+		- postcondition: The virtual caret is moved to *obj* and the buffer content for *obj* is reported.
+		:param obj: The object to which the document should scroll.
+		:return: ``True`` if the document was scrolled, ``False`` if not.
+		- note: If ``False`` is returned, calling events should probably call their ``nextHandler``.
 		"""
 		if (
 			self.programmaticScrollMayFireEvent
@@ -2153,13 +2091,14 @@ class BrowseModeDocumentTreeInterceptor(
 		else:
 			raise ValueError(f"{obj} is not a supported type")
 
-		# We only want to update the caret and speak the field if we're not in the same one as before
+		# We only want to update the caret and speak the field if we're not in the first line of the same object as before.
+		# See #17669
+		scrollInfo.collapse()
+		scrollInfo.expand(textInfos.UNIT_LINE)
 		caretInfo = self.makeTextInfo(textInfos.POSITION_CARET)
 		# Expand to one character, as isOverlapping() doesn't treat, for example, (4,4) and (4,5) as overlapping.
 		caretInfo.expand(textInfos.UNIT_CHARACTER)
 		if not scrollInfo.isOverlapping(caretInfo):
-			if scrollInfo.isCollapsed:
-				scrollInfo.expand(textInfos.UNIT_LINE)
 			speech.speakTextInfo(scrollInfo, reason=OutputReason.CARET)
 			scrollInfo.collapse()
 			self.selection = scrollInfo
@@ -2705,8 +2644,11 @@ class BrowseModeDocumentTreeInterceptor(
 		nativeAppSelectionModeOn = not self._nativeAppSelectionMode
 		if nativeAppSelectionModeOn:
 			try:
+				# We need to clear the app selection before updating it when turning it on,
+				# as the app must be able to support clearing / setting empty selections.
+				self.clearAppSelection()
 				self.updateAppSelection()
-			except NotImplementedError:
+			except (NotImplementedError, COMError):
 				log.debugWarning("updateAppSelection failed", exc_info=True)
 				# Translators: the message when native selection mode is not available in this browse mode document.
 				ui.message(_("Native selection mode unsupported in this document"))

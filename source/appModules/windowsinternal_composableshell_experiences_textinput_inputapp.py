@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2017-2024 NV Access Limited, Joseph Lee
+# Copyright (C) 2017-2025 NV Access Limited, Joseph Lee
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -171,15 +171,21 @@ class AppModule(appModuleHandler.AppModule):
 	# Turn off browse mode by default so clipboard history entry menu items can be announced when tabbed to.
 	disableBrowseModeByDefault: bool = True
 
-	def event_UIA_elementSelected(self, obj, nextHandler):
+	def event_UIA_elementSelected(self, obj: NVDAObject, nextHandler: Callable[[], None]):
 		# Logic for the following items is handled by overlay classes
+		# #18236: for others, event_selection method from base NVDA object will be invoked,
+		# and on Windows 11, this causes speech repetitions because emoji panel takes system focus
+		# if the event handler is allowed to run through its course.
 		# Therefore pass these events straight on.
-		if isinstance(
-			obj,
-			(
-				ImeCandidateItem,  # IME candidate items
-				NavigationMenuItem,  # Windows 11 emoji panel navigation menu items
-			),
+		if (
+			isinstance(
+				obj,
+				(
+					ImeCandidateItem,  # IME candidate items
+					NavigationMenuItem,  # Windows 11 emoji panel navigation menu items
+				),
+			)
+			or api.getFocusObject().appModule == self
 		):
 			return nextHandler()
 		# #7273: When this is fired on categories,
@@ -430,3 +436,14 @@ class AppModule(appModuleHandler.AppModule):
 			elif obj.UIAAutomationId == "Windows.Shell.InputApp.FloatingSuggestionUI.DelegationTextBox":
 				clsList.remove(EditableTextWithAutoSelectDetection)
 				clsList.remove(XamlEditableText)
+
+	def event_NVDAObject_init(self, obj: NVDAObject) -> None:
+		# #17308: recent Windows 11 builds raise live region change event when clipboard history closes,
+		# causing NVDA to report data item text such as clipboard history entries.
+		# Therefore, tell NVDA to veto this event at the object level, otherwise focus change handling breaks
+		# due to live region change event being queued.
+		if obj.role == controlTypes.Role.DATAITEM and obj.parent.role in (
+			controlTypes.Role.TABLEROW,  # Clipboard history item
+			controlTypes.Role.LIST,  # Clipboard history item actions list
+		):
+			obj._shouldAllowUIALiveRegionChangeEvent = False

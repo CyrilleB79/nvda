@@ -7,56 +7,19 @@
 
 import multiprocessing
 import os
-import platform
 import sys
+from pathlib import Path
 
-
-# Ensure we are inside the Python virtual environment.
-nvdaVenv = os.getenv("NVDA_VENV")
+# Ensure we are inside the Python virtual environment, and that it is started with uv
 virtualEnv = os.getenv("VIRTUAL_ENV")
-if not virtualEnv or not os.path.isdir(virtualEnv):
+uv = os.getenv("uv")
+if not virtualEnv or not uv or Path.cwd() != Path(virtualEnv).parent:
 	print(
-		"Error: SCons cannot detect the NVDA build system Python virtual environment.\n"
+		"Error: SCons was started outside NVDA's build system Python virtual environment.\n"
 		"SCons must be executed using scons.bat in the root of this repository."
 	)
 	sys.exit(1)
-if nvdaVenv != virtualEnv:
-	print("Warning: SCons launched within a custom Python virtual environment.")
 
-# Variables for storing required version of Python, and the version which is used to run this script.
-requiredPythonMajor = "3"
-requiredPythonMinor = "11"
-requiredPythonArchitecture = "32bit"
-installedPythonMajor = str(sys.version_info.major)
-installedPythonMinor = str(sys.version_info.minor)
-installedPythonArchitecture = platform.architecture()[0]
-# Ensure that we are running with required version of Python, otherwise inform the user and exit.
-if (
-	installedPythonArchitecture != requiredPythonArchitecture
-	or installedPythonMajor != requiredPythonMajor
-	or installedPythonMinor != requiredPythonMinor
-):
-	unsupportedPythonMsg = (
-		"This script is started with Python %s.%s %s, however to build NVDA you have to use Python %s.%s %s.\n"
-		"Please install the needed version of Python and launch SCons again, or if you have multiple "
-		"versions of Python installed start this script with required version explicitly."
-	)
-	raise RuntimeError(
-		unsupportedPythonMsg
-		% (
-			installedPythonMajor,
-			installedPythonMinor,
-			installedPythonArchitecture,
-			requiredPythonMajor,
-			requiredPythonMinor,
-			requiredPythonArchitecture,
-		)
-	)
-sourceEnvPath = os.path.abspath(os.path.join(Dir(".").srcnode().path, "source"))
-sys.path.append(sourceEnvPath)
-import sourceEnv  # noqa: E402
-
-sys.path.remove(sourceEnvPath)
 import time  # noqa: E402
 import importlib.util  # noqa: E402
 import winreg  # noqa: E402
@@ -149,7 +112,6 @@ env = Environment(
 	tools=[
 		"textfile",
 		"gettextTool",
-		"md2html",
 		"doxygen",
 		"recursiveInstall",
 		"m4",
@@ -193,9 +155,6 @@ if len(unknown) > 0:
 	print("Unknown commandline variables: %s" % unknown)
 	Exit(1)
 
-# Ensure that any Python subprocesses (such as for py2exe) can find our Python directory in miscDeps
-env["ENV"]["PYTHONPATH"] = ";".join(sourceEnv.PYTHON_DIRS)
-
 env["copyright"] = versionInfo.copyright
 env["version_year"] = versionInfo.version_year
 env["version_major"] = versionInfo.version_major
@@ -238,7 +197,7 @@ if apiSigningToken:
 		retval = 1  # error value
 		for targetFile in target:
 			if (abspath := targetFile.abspath).endswith((".exe", ".dll")):
-				ps_cmd = f"powershell -File appveyor\scripts\sign.ps1 -ApiToken {apiSigningToken} -FileToSign {abspath}"
+				ps_cmd = rf"PowerShell -File appveyor\scripts\sign.ps1 -ApiToken {apiSigningToken} -FileToSign {abspath}"
 				if (retval := env.Execute(ps_cmd, shell=True)) != 0:
 					print(f"Error signing file: {abspath}")
 		return retval
@@ -332,6 +291,12 @@ for po in env.Glob(sourceDir.path + "/locale/*/lc_messages/*.po"):
 
 styles = os.path.join(userDocsDir.path, "styles.css")
 numberedHeadingsStyle = os.path.join(userDocsDir.path, "numberedHeadings.css")
+logo = os.path.join(sourceDir.path, "images", "nvda.ico")
+favicon = env.Command(
+	outputDir.File("favicon.ico"),
+	logo,
+	Copy("$TARGET", "$SOURCE"),
+)
 
 # Create Non-english md files in user_docs from localized xliff and English skel files
 for xliffFile in env.Glob(os.path.join(userDocsDir.path, "*", "*.xliff")):
@@ -342,14 +307,31 @@ for xliffFile in env.Glob(os.path.join(userDocsDir.path, "*", "*.xliff")):
 	env.Command(
 		mdFile,
 		xliffFile,
-		[f'@{sys.executable} user_docs/markdownTranslate.py generateMarkdown -x "{xliffFile}" -o "{mdFile}"'],
+		[f'@"{sys.executable}" source/markdownTranslate.py generateMarkdown -x "{xliffFile}" -o "{mdFile}"'],
 	)
 # Allow all markdown files to be converted to html in user_docs
 for mdFile in env.Glob(os.path.join(userDocsDir.path, "*", "*.md")):
-	htmlFile = env.md2html(mdFile)
+	# first substitute some variables such as NVDA version and URL into the markdown file
+	mdFileSub = env.Substfile(
+		target=mdFile.abspath.replace(".md", ".md.sub"),
+		source=mdFile,
+		SUBST_DICT={
+			"NVDA_VERSION": env["version"],
+			"NVDA_URL": versionInfo.url,
+			"NVDA_COPYRIGHT_YEARS": versionInfo.copyrightYears,
+		},
+	)
+	lang = os.path.split(os.path.dirname(mdFile.path))[-1]
+	docType = os.path.basename(mdFile.path).split(".")[0]
+	htmlFile = env.Command(
+		target=mdFile.abspath.replace(".md", ".html"),
+		source=mdFileSub,
+		action=[f'@"{sys.executable}" source/md2html.py -l {lang} -t {docType} "$SOURCE" "$TARGET"'],
+	)
 	styleInstallPath = os.path.dirname(mdFile.abspath)
 	installedStyle = env.Install(styleInstallPath, styles)
 	installedHeadingsStyle = env.Install(styleInstallPath, numberedHeadingsStyle)
+	installedLogo = env.Install(styleInstallPath, favicon)
 	env.Depends(
 		htmlFile,
 		[
@@ -357,16 +339,21 @@ for mdFile in env.Glob(os.path.join(userDocsDir.path, "*", "*.md")):
 			installedStyle,
 			numberedHeadingsStyle,
 			installedHeadingsStyle,
+			favicon,
+			installedLogo
 		],
 	)
 	env.Depends(htmlFile, mdFile)
 
 # Create key commands files
-for userGuideFile in env.Glob(os.path.join(userDocsDir.path, "*", "userGuide.md")):
-	keyCommandsHtmlFile = env.md2html(
-		userGuideFile.abspath.replace("userGuide.md", "keyCommands.html"), userGuideFile
+for userGuideFileSub in env.Glob(os.path.join(userDocsDir.path, "*", "userGuide.md.sub")):
+	lang = os.path.split(os.path.dirname(userGuideFileSub.path))[-1]
+	keyCommandsHtmlFile = env.Command(
+		target=userGuideFileSub.abspath.replace("userGuide.md.sub", "keyCommands.html"),
+		source=userGuideFileSub,
+		action=[f'@"{sys.executable}" source/md2html.py -l {lang} -t keyCommands "$SOURCE" "$TARGET"'],
 	)
-	env.Depends(keyCommandsHtmlFile, userGuideFile)
+	env.Depends(keyCommandsHtmlFile, userGuideFileSub)
 
 # Build unicode CLDR dictionaries
 env.SConscript("cldrDict_sconscript", exports=["env", "sourceDir"])
@@ -414,8 +401,7 @@ def NVDADistGenerator(target, source, env, for_signature):
 		with winreg.OpenKey(
 			winreg.HKEY_LOCAL_MACHINE,
 			r"SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0",
-			0,
-			winreg.KEY_READ | winreg.KEY_WOW64_32KEY,
+			access=winreg.KEY_READ | winreg.KEY_WOW64_32KEY,
 		) as SDKKey:
 			sdk_installationFolder = winreg.QueryValueEx(SDKKey, "InstallationFolder")[0]
 			sdk_productVersion = winreg.QueryValueEx(SDKKey, "ProductVersion")[0]
@@ -436,7 +422,7 @@ def NVDADistGenerator(target, source, env, for_signature):
 				action.append(Copy(target[0], file.path))
 
 	if certFile or apiSigningToken:
-		for prog in "nvda_noUIAccess.exe", "nvda_uiAccess.exe", "nvda_slave.exe":
+		for prog in "nvda_noUIAccess.exe", "nvda_uiAccess.exe", "nvda_slave.exe", "l10nUtil.exe":
 			action.append(
 				lambda target, source, env, progByVal=prog: env["signExec"](
 					[target[0].File(progByVal)], source, env
@@ -523,8 +509,10 @@ uninstaller = env.Command(uninstFile, uninstGen, [uninstGen])
 if certFile or apiSigningToken:
 	env.AddPostAction(uninstaller, [env["signExec"]])
 
+devDocTargets = env.SConscript("projectDocs/dev/developerGuide/sconscript", exports=["env", "outputDir", "sourceDir", "userDocsDir"])
 dist = env.NVDADist("dist", [sourceDir, userDocsDir], uiAccess=bool(certFile) or bool(apiSigningToken))
 env.Depends(dist, uninstaller)
+env.Depends(dist, devDocTargets)
 # dist will always be considered obsolete
 AlwaysBuild(dist)
 # Dir node targets don't get cleaned, so cleaning of the dist nodes has to be explicitly specified.
@@ -568,6 +556,11 @@ outputHeadingStylesFile = env.Command(
 	outputDir.File("numberedHeadings.css"),
 	userDocsDir.File("numberedHeadings.css"),
 	Copy("$TARGET", "$SOURCE"),
+)
+outputLogoFile = env.Command(
+	outputDir.File("favicon.ico"),
+	logo,
+	Copy("$TARGET", "$SOURCE")
 )
 changesFile = env.Command(
 	outputDir.File("%s_changes.html" % outFilePrefix),
@@ -647,11 +640,6 @@ def makePot(target, source, env):
 			out.write(line)
 	os.remove(potFn)
 	os.rename(tmpFn, potFn)
-
-
-env.SConscript("projectDocs/dev/developerGuide/sconscript", exports=["env", "outputDir", "sourceDir"])
-
-
 def getSubDirs(path):
 	for root, dirNames, fileNames in os.walk(path):
 		yield root
