@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2006-2023 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Babbage B.V., Bill Dengler,
+# Copyright (C) 2006-2025 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Babbage B.V., Bill Dengler,
 # Julien Cochuyt, Leonard de Ruijter
 
 from .speech import (
@@ -63,7 +63,8 @@ from .speech import (
 	spellTextInfo,
 	splitTextIndentation,
 )
-from .extensions import speechCanceled, post_speechPaused
+from .extensions import speechCanceled, post_speechPaused, pre_speechQueued, filter_speechSequence
+from .languageHandling import getSpeechSequenceWithLangs
 from .priorities import Spri
 
 from .types import (
@@ -143,6 +144,7 @@ __all__ = [
 	"splitTextIndentation",
 	"speechCanceled",
 	"post_speechPaused",
+	"pre_speechQueued",
 ]
 
 import synthDriverHandler
@@ -164,7 +166,9 @@ def initialize():
 		getTextInfoSpeech,
 		SpeakTextInfoState,
 	)
+	filter_speechSequence.register(getSpeechSequenceWithLangs)
 
 
 def terminate():
 	synthDriverHandler.setSynth(None)
+	filter_speechSequence.unregister(getSpeechSequenceWithLangs)

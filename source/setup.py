@@ -28,8 +28,6 @@ from py2exe.dllfinder import DllFinder  # noqa: E402
 import wx  # noqa: E402
 import importlib.machinery  # noqa: E402
 
-# Explicitly put the nvda_dmp dir on the build path so the DMP library is included
-sys.path.append(os.path.join("..", "include", "nvda_dmp"))
 RT_MANIFEST = 24
 manifestTemplateFilePath = "manifest.template.xml"
 
@@ -180,16 +178,14 @@ freeze(
 	windows=_py2ExeWindows,
 	console=[
 		{
-			"script": os.path.join("..", "include", "nvda_dmp", "nvda_dmp.py"),
-			"icon_resources": [(1, "images/nvda.ico")],
-			"other_resources": [_genManifestTemplate(shouldHaveUIAccess=False)],
+			"script": "l10nUtil.py",
 			"version_info": {
 				"version": formatBuildVersionString(),
-				"description": "NVDA Diff-match-patch proxy",
+				"description": "NVDA Localization Utility",
 				"product_name": name,
 				"product_version": version,
-				"copyright": f"{NVDAcopyright}, Bill Dengler",
-				"company_name": f"Bill Dengler, {publisher}",
+				"copyright": NVDAcopyright,
+				"company_name": publisher,
 			},
 		},
 	],
@@ -221,6 +217,8 @@ freeze(
 			# multiprocessing isn't going to work in a frozen environment
 			"multiprocessing",
 			"concurrent.futures.process",
+			# Tomli is part of Python 3.11 as Tomlib, but is imported as tomli by cryptography, which causes an infinite loop in py2exe
+			"tomli",
 		],
 		"packages": [
 			"NVDAObjects",
@@ -241,6 +239,11 @@ freeze(
 			"visionEnhancementProviders",
 			# Required for markdown, markdown implicitly imports this so it isn't picked up
 			"html.parser",
+			"lxml._elementpath",
+			"markdown.extensions",
+			"markdown_link_attr_modifier",
+			"mdx_truly_sane_lists",
+			"mdx_gh_links",
 		],
 		"includes": [
 			"nvdaBuiltin",
@@ -261,6 +264,7 @@ freeze(
 		("fonts", glob("fonts/*.ttf")),
 		("louis/tables", glob("louis/tables/*")),
 		("COMRegistrationFixes", glob("COMRegistrationFixes/*.reg")),
+		("miscDeps/tools", ["../miscDeps/tools/msgfmt.exe"]),
 		(".", glob("../miscDeps/python/*.dll")),
 		(".", ["message.html"]),
 		(".", [os.path.join(sys.base_prefix, "python3.dll")]),
@@ -293,7 +297,7 @@ freeze(
 				"*.xliff",
 				"*/user_docs/styles.css",
 				"*/user_docs/numberedHeadings.css",
-				"*/developerGuide.*",
+				"*/user_docs/favicon.ico",
 			),
 		)
 	),

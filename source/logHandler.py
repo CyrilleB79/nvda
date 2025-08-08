@@ -117,7 +117,13 @@ def getCodePath(f):
 			# If an Exception is currently stored as a local variable on that frame,
 			# A reference cycle will be created, holding the frame and all its variables.
 			# Therefore clear f_locals manually.
-			f_locals.clear()
+			for key in list(f_locals.keys()):
+				try:
+					# Note: Python 3.13 changed how to clear frame locals
+					# https://github.com/python/cpython/issues/125590
+					f_locals.pop(key)
+				except ValueError:
+					pass
 		del f_locals
 		# #6122: Check if this function is a member of its first argument's class (and specifically which base class if any)
 		# Rather than an instance member of its first argument.
@@ -465,10 +471,11 @@ def redirectStdout(logger):
 	sys.stderr = StreamRedirector("stderr", logger, logging.ERROR)
 
 
+NVDA_LOGGER_NAME = "nvda"
 # Register our logging class as the class for all loggers.
 logging.setLoggerClass(Logger)
 #: The singleton logger instance.
-log: Logger = logging.getLogger("nvda")
+log: Logger = logging.getLogger(NVDA_LOGGER_NAME)
 #: The singleton log handler instance.
 logHandler: Optional[logging.Handler] = None
 
@@ -545,6 +552,16 @@ def _shouldDisableLogging() -> bool:
 	return globalVars.appArgs.secure or noLoggingRequested
 
 
+def filterExternalDependencyLogging(record: logging.LogRecord) -> bool:
+	import config
+
+	return (
+		record.name == NVDA_LOGGER_NAME
+		or record.levelno >= Logger.WARNING
+		or config.conf["debugLog"]["externalPythonDependencies"]
+	)
+
+
 def initialize(shouldDoRemoteLogging=False):
 	"""Initialize logging.
 	This must be called before any logging can occur.
@@ -593,8 +610,7 @@ def initialize(shouldDoRemoteLogging=False):
 				logLevel = Logger.DEBUG
 			elif logLevel <= 0:
 				logLevel = Logger.INFO
-			log.setLevel(logLevel)
-			log.root.setLevel(max(logLevel, logging.WARN))
+			log.root.setLevel(logLevel)
 	else:
 		logHandler = RemoteHandler()
 		logFormatter = Formatter(
@@ -602,6 +618,7 @@ def initialize(shouldDoRemoteLogging=False):
 			style="{",
 		)
 	logHandler.setFormatter(logFormatter)
+	logHandler.addFilter(filterExternalDependencyLogging)
 	log.root.addHandler(logHandler)
 	redirectStdout(log)
 	sys.excepthook = _excepthook
@@ -636,5 +653,4 @@ def setLogLevelFromConfig():
 		log.warning("invalid setting for logging level: %s" % levelName)
 		level = log.INFO
 		config.conf["general"]["loggingLevel"] = logging.getLevelName(log.INFO)
-	log.setLevel(level)
-	log.root.setLevel(max(level, logging.WARN))
+	log.root.setLevel(level)

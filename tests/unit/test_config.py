@@ -35,6 +35,8 @@ from config.profileUpgradeSteps import (
 	upgradeConfigFrom_13_to_14,
 	upgradeConfigFrom_9_to_10,
 	upgradeConfigFrom_11_to_12,
+	upgradeConfigFrom_16_to_17,
+	upgradeConfigFrom_17_to_18,
 )
 from config.configFlags import (
 	NVDAKey,
@@ -1043,3 +1045,119 @@ class Config_upgradeProfileSteps_upgradeProfileFrom_13_to_14(unittest.TestCase):
 			profile["speech"]["outputDevice"]
 		with self.assertRaises(KeyError):
 			profile["audio"]["outputDevice"]
+
+
+class Config_upgradeProfileSteps_upgradeProfileFrom_16_to_17(unittest.TestCase):
+	def test_rename(self):
+		v15Config = """
+[remote]
+	[[connections]]
+		last_connected = nvdaremote:6837, 192.168.0.123:456
+	[[controlserver]]
+		autoconnect = True
+		self_hosted = True
+		connection_type = 0
+		host = remote.example.com:1234
+		port = 31415
+		key = superSecurePassw0rd
+	[[seen_motds]]
+		nvdaremote.com:6837=7B502C3A1F48C8609AE212CDFB639DEE39673F5E
+	[[trusted_certs]]
+		sketchyServer.example.com:6837 = 64EC88CA00B268E5BA1A35678A1B5316D212F4F366B2477232534A8AECA37F3C
+"""
+		expectedV16Config = {
+			"remote": {
+				"connections": {
+					"lastConnected": ["nvdaremote:6837", "192.168.0.123:456"],
+				},
+				"controlServer": {
+					"autoconnect": "True",
+					"selfHosted": "True",
+					"connectionMode": "0",
+					"host": "remote.example.com:1234",
+					"port": "31415",
+					"key": "superSecurePassw0rd",
+				},
+				"seenMOTDs": {
+					"nvdaremote.com:6837": "7B502C3A1F48C8609AE212CDFB639DEE39673F5E",
+				},
+				"trustedCertificates": {
+					"sketchyServer.example.com:6837": "64EC88CA00B268E5BA1A35678A1B5316D212F4F366B2477232534A8AECA37F3C",
+				},
+			},
+		}
+		conf = configobj.ConfigObj(io.StringIO(v15Config))
+		upgradeConfigFrom_16_to_17(conf)
+		actualV16Config = conf.dict()
+		self.maxDiff = None
+		self.assertEqual(expectedV16Config, actualV16Config)
+
+
+class Config_upgradeProfileSteps_upgradeProfileFrom_17_to_18(unittest.TestCase):
+	def test_noBrailleSection(self):
+		"""Test upgrading when there is no braille section - should create the structure and add dotPad."""
+		configString = ""
+		profile = _loadProfile(configString)
+		upgradeConfigFrom_17_to_18(profile)
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], ["dotPad"])
+
+	def test_noAutoSection(self):
+		"""Test upgrading when braille section exists but no auto section - should create auto section and add dotPad."""
+		configString = """
+[braille]
+	display = auto
+"""
+		profile = _loadProfile(configString)
+		upgradeConfigFrom_17_to_18(profile)
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], ["dotPad"])
+
+	def test_noExcludedDisplaysKey(self):
+		"""Test upgrading when auto section exists but no excludedDisplays key - should create key and add dotPad."""
+		configString = """
+[braille]
+	display = auto
+	[[auto]]
+"""
+		profile = _loadProfile(configString)
+		upgradeConfigFrom_17_to_18(profile)
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], ["dotPad"])
+
+	def test_emptyExcludedDisplays(self):
+		"""Test upgrading when excludedDisplays exists but is empty - should add dotPad."""
+		configString = """
+[braille]
+	display = auto
+	[[auto]]
+		excludedDisplays =
+"""
+		profile = _loadProfile(configString)
+		# Manually set to empty list to simulate the state after config parsing
+		profile["braille"]["auto"]["excludedDisplays"] = []
+		upgradeConfigFrom_17_to_18(profile)
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], ["dotPad"])
+
+	def test_existingExcludedDisplays(self):
+		"""Test upgrading when excludedDisplays has other entries - should add dotPad to the list."""
+		configString = """
+[braille]
+	display = auto
+	[[auto]]
+		excludedDisplays = hidBrailleStandard,
+"""
+		profile = _loadProfile(configString)
+		upgradeConfigFrom_17_to_18(profile)
+		expected = ["hidBrailleStandard", "dotPad"]
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], expected)
+
+	def test_dotPadAlreadyExcluded(self):
+		"""Test upgrading when dotPad is already in excludedDisplays - should not add it again."""
+		configString = """
+[braille]
+	display = auto
+	[[auto]]
+		excludedDisplays = dotPad, hidBrailleStandard
+"""
+		profile = _loadProfile(configString)
+		upgradeConfigFrom_17_to_18(profile)
+		expected = ["dotPad", "hidBrailleStandard"]
+		self.assertEqual(profile["braille"]["auto"]["excludedDisplays"], expected)

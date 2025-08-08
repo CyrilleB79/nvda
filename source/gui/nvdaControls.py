@@ -32,6 +32,21 @@ import winUser
 from collections.abc import Callable
 
 
+__all__ = [
+	"AutoWidthColumnListCtrl",
+	"SelectOnFocusSpinCtrl",
+	"ListCtrlAccessible",
+	"CustomCheckListBox",
+	"AutoWidthColumnCheckListCtrl",
+	"DPIScaledDialog",
+	"MessageDialog",
+	"_ContinueCancelDialog",
+	"EnhancedInputSlider",
+	"TabbableScrolledPanel",
+	"FeatureFlagCombo",
+]
+
+
 class AutoWidthColumnListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 	"""
 	A list control that allows you to specify a column to resize to take up the remaining width of a wx.ListCtrl.
@@ -583,12 +598,13 @@ class FeatureFlagCombo(wx.Choice):
 	) -> OrderedDict[enum.Enum, str]:
 		behaviorOfDefault = self._getConfigValue().behaviorOfDefault
 		translatedStringForBehaviorOfDefault = translatedOptions[behaviorOfDefault]
-		# Translators: Label for the default option for some feature-flag combo boxes
-		# Such as, in the Advanced settings panel option, 'Load Chromium virtual buffer when document busy.'
-		# The placeholder {} is replaced with the label of the option which describes current default behavior
-		# in NVDA. EG "Default (Yes)".
-		defaultOptionLabel: str = _("Default ({})").format(
-			translatedStringForBehaviorOfDefault,
+		# Translators: Label for the default option for some feature-flag combo boxes.
+		# Such as, in the Advanced settings panel option, 'Load Chromium virtual buffer when document busy.'.
+		# e.g. "Default (Yes)".
+		# The placeholder {default} is replaced with the label of the option which describes current default behavior
+		# in NVDA.
+		defaultOptionLabel: str = _("Default ({default})").format(
+			default=translatedStringForBehaviorOfDefault,
 		)
 		return collections.OrderedDict(
 			{

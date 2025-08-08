@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2016-2024 NV Access Limited, Łukasz Golonka
+# Copyright (C) 2016-2025 NV Access Limited, Łukasz Golonka
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -45,6 +45,7 @@ class myDialog(wx.Dialog):
 
 from collections.abc import Callable
 from contextlib import contextmanager
+from functools import wraps
 import sys
 import threading
 import weakref
@@ -373,9 +374,9 @@ class BoxSizerHelper:
 		@param **keywordArgs: the extra args to pass when adding the item to the wx.Sizer. This parameter is
 			normally not necessary.
 		"""
-		assert (
-			not self.dialogDismissButtonsAdded
-		), "Buttons to dismiss the dialog already added, they should be the last item added."
+		assert not self.dialogDismissButtonsAdded, (
+			"Buttons to dismiss the dialog already added, they should be the last item added."
+		)
 
 		toAdd = item
 		shouldAddSpacer = self.hasFirstItemBeenAdded
@@ -529,3 +530,26 @@ def wxCallOnMain(
 		raise exception
 	else:
 		return result
+
+
+# TODO: Rewrite to use type parameter lists when upgrading to python 3.12 or later.
+_AlwaysCallAfterP = ParamSpec("_AlwaysCallAfterP")
+
+
+def alwaysCallAfter(func: Callable[_AlwaysCallAfterP, Any]) -> Callable[_AlwaysCallAfterP, None]:
+	"""Makes GUI updates thread-safe by running in the main thread.
+
+	Example:
+		@alwaysCallAfter
+		def updateLabel(text):
+			label.SetLabel(text)  # Safe GUI update from any thread
+
+	.. note::
+		The value returned by the decorated function will be discarded.
+	"""
+
+	@wraps(func)
+	def wrapper(*args: _AlwaysCallAfterP.args, **kwargs: _AlwaysCallAfterP.kwargs) -> None:
+		wx.CallAfter(func, *args, **kwargs)
+
+	return wrapper

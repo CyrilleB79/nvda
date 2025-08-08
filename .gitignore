@@ -25,8 +25,12 @@ dlldata.c
 *.pdb
 .sconsign.dblite
 *.md.sub
+user_docs/developerGuide.html
 user_docs/*/*.html
+user_docs/*/*.md
+!user_docs/en/*.md
 user_docs/*/*.css
+user_docs/*/*.ico
 extras/controllerClient/x86/nvdaController.h
 extras/controllerClient/x64
 extras/controllerClient/arm64
@@ -49,3 +53,4 @@ source/locale/*/cldr.dic
 nvdaHelper/docs/
 *.pfx
 appveyor-tools/
+*.egg-info
