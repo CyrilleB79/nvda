@@ -1,16 +1,17 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2023 NV Access Limited, Dinesh Kaushal, Siddhartha Gupta, Accessolutions, Julien Cochuyt,
+# Copyright (C) 2006-2025 NV Access Limited, Dinesh Kaushal, Siddhartha Gupta, Accessolutions, Julien Cochuyt,
 # Cyrille Bougot, Leonard de Ruijter
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
+from __future__ import annotations
 import abc
 import ctypes
 import enum
 from typing import (
 	Any,
-	Dict,
 	Optional,
+	Callable,
 )
 
 from comtypes import COMError, BSTR
@@ -29,6 +30,7 @@ from tableUtils import HeaderCellTracker
 import config
 from config.configFlags import ReportCellBorders
 import textInfos
+from utils.urlUtils import _LinkData
 import colors
 import eventHandler
 import api
@@ -51,6 +53,11 @@ import vision
 from utils.displayString import DisplayStringIntEnum
 import NVDAState
 from globalCommands import SCRCAT_SYSTEMCARET
+from ._msOffice import MsoHyperlink
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from ._msOfficeChart import OfficeChart
 
 excel2010VersionMajor = 14
 
@@ -146,6 +153,16 @@ xlToRight = -4161
 xlUp = -4162
 xlCellWidthUnitToPixels = 7.5919335705812574139976275207592
 xlSheetVisible = -1
+
+
+class XlApplicationInternational(enum.IntEnum):
+	"""Specifies country/region and international settings.
+
+	.. seealso:: ```XlApplicationInternational`` enumeration (Excel) <https://learn.microsoft.com/en-us/office/vba/api/excel.xlapplicationinternational>`_
+	"""
+
+	LIST_SEPARATOR = 5
+
 
 xlA1 = 1
 xlRC = 2
@@ -793,6 +810,15 @@ class ExcelBase(Window):
 			obj.parent = selection
 		return obj
 
+	def _getActiveCell(self) -> "ExcelCell":
+		cell = self.excelWindowObject.ActiveCell
+		obj = ExcelCell(
+			windowHandle=self.windowHandle,
+			excelWindowObject=self.excelWindowObject,
+			excelCellObject=cell,
+		)
+		return obj
+
 	def _getSelection(self):
 		selection = self.excelWindowObject.Selection
 		try:
@@ -849,7 +875,7 @@ class Excel7Window(ExcelBase):
 		return self.excelWindowObjectFromWindow(self.windowHandle)
 
 	def _get_focusRedirect(self):
-		selection = self._getSelection()
+		selection = self._getActiveCell()
 		dropdown = self._getDropdown(selection=selection)
 		if dropdown:
 			return dropdown
@@ -1092,6 +1118,22 @@ class ExcelWorksheet(ExcelBase):
 			"kb:numpadEnter",
 			"kb:shift+enter",
 			"kb:shift+numpadEnter",
+		),
+		canPropagate=True,
+	)
+	def script_changeActiveCell(self, gesture: inputCore.InputGesture) -> None:
+		isChartActive = True if self.excelWindowObject.ActiveChart else False
+		if isChartActive:
+			objGetter = self._getSelection
+		else:
+			objGetter = self._getActiveCell
+		self.changeSelectionOrActiveCell(
+			gesture=gesture,
+			objGetter=objGetter,
+		)
+
+	@scriptHandler.script(
+		gestures=(
 			"kb:upArrow",
 			"kb:downArrow",
 			"kb:leftArrow",
@@ -1138,8 +1180,18 @@ class ExcelWorksheet(ExcelBase):
 		),
 		canPropagate=True,
 	)
-	def script_changeSelection(self, gesture):
-		oldSelection = self._getSelection()
+	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
+		self.changeSelectionOrActiveCell(
+			gesture=gesture,
+			objGetter=self._getSelection,
+		)
+
+	def changeSelectionOrActiveCell(
+		self,
+		gesture: inputCore.InputGesture,
+		objGetter: Callable[[], ExcelCell | ExcelSelection | OfficeChart],
+	):
+		oldSelection = objGetter()
 		gesture.send()
 		newSelection = None
 		start = time.time()
@@ -1155,7 +1207,7 @@ class ExcelWorksheet(ExcelBase):
 			if eventHandler.isPendingEvents("gainFocus"):
 				# This object is no longer focused.
 				return
-			newSelection = self._getSelection()
+			newSelection = objGetter()
 			if newSelection and newSelection != oldSelection:
 				log.debug(f"Detected new selection after {elapsed} sec")
 				break
@@ -1393,7 +1445,7 @@ class NvCellState(enum.IntEnum):
 	UNLOCKED = (1 << 10,)
 
 
-_nvCellStatesToStates: Dict[NvCellState, controlTypes.State] = {
+_nvCellStatesToStates: dict[NvCellState, controlTypes.State] = {
 	NvCellState.EXPANDED: controlTypes.State.EXPANDED,
 	NvCellState.COLLAPSED: controlTypes.State.COLLAPSED,
 	NvCellState.LINKED: controlTypes.State.LINKED,
@@ -1472,6 +1524,16 @@ class CommentExcelCellInfoQuickNavItem(ExcelCellInfoQuickNavItem):
 		return "%s: %s" % (self.excelCellInfo.address.split("!")[-1], self.excelCellInfo.comments)
 
 
+def convertAddressToLocal(application: comtypes.client.lazybind.Dispatch, address: str) -> str:
+	"""Converts a range address string from invariant to local representation.
+	E.g. "'[Filename.xlsx]Sheet1'!$A$2,$A$4" becomes "'[Filename.xlsx]Sheet1'!$A$2;$A$4" on a French system.
+	"""
+
+	fileAndSheet, range = address.rsplit("!", 1)
+	sep = application.International(XlApplicationInternational.LIST_SEPARATOR)
+	return f"{fileAndSheet}!{range.replace(',', sep)}"
+
+
 class FormulaExcelCellInfoQuickNavItem(ExcelCellInfoQuickNavItem):
 	@property
 	def label(self):
@@ -1518,7 +1580,7 @@ class ExcelCellInfoQuicknavIterator(object, metaclass=abc.ABCMeta):
 		NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(
 			self.document.appModule.helperLocalBindingHandle,
 			self.document.windowHandle,
-			BSTR(address),
+			BSTR(convertAddressToLocal(worksheet.Application, address)),
 			self.cellInfoFlags,
 			count,
 			cellInfos,
@@ -1561,7 +1623,7 @@ class ExcelCell(ExcelBase):
 		res = NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(
 			self.appModule.helperLocalBindingHandle,
 			self.windowHandle,
-			BSTR(address),
+			BSTR(convertAddressToLocal(self.excelCellObject.Application, address)),
 			NVCELLINFOFLAG_ALL,
 			1,
 			ctypes.byref(ci),
@@ -1694,6 +1756,21 @@ class ExcelCell(ExcelBase):
 			return controlTypes.Role.LINK
 		return controlTypes.Role.TABLECELL
 
+	def _get_linkData(self) -> _LinkData | None:
+		links = self.excelCellObject.Hyperlinks
+		if links.count == 0:
+			return None
+		link = links(1)
+		if link.Type == MsoHyperlink.RANGE:
+			text = link.TextToDisplay
+		else:
+			log.debugWarning(f"No text to display for link type {link.Type}")
+			text = None
+		return _LinkData(
+			displayText=text,
+			destination=link.Address,
+		)
+
 	TextInfo = ExcelCellTextInfo
 
 	def _isEqual(self, other):
@@ -1787,7 +1864,7 @@ class ExcelCell(ExcelBase):
 			and controlTypes.State.UNLOCKED not in self.states
 			and controlTypes.State.PROTECTED in self.parent.states
 		):
-			winsound.PlaySound("Default", winsound.SND_ALIAS | winsound.SND_NOWAIT | winsound.SND_ASYNC)
+			winsound.MessageBeep()
 			return
 		super(ExcelCell, self).event_typedCharacter(ch)
 
@@ -1847,8 +1924,7 @@ class ExcelCell(ExcelBase):
 	@script(
 		description=_(
 			# Translators: the description for a script for Excel
-			"Reports the note on the current cell. "
-			"If pressed twice, presents the information in browse mode",
+			"Reports the note on the current cell. If pressed twice, presents the information in browse mode",
 		),
 		gesture="kb:NVDA+alt+c",
 		category=SCRCAT_SYSTEMCARET,

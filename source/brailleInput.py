@@ -116,9 +116,9 @@ class BrailleInputHandler(AutoPropertyObject):
 		@param endWord: C{True} if this is the end of a word, C{False} otherwise.
 		@return: C{True} if translation produced text, C{False} if not.
 		"""
-		assert (
-			not self.useContractedForCurrentFocus or endWord
-		), "Must only translate contracted at end of word"
+		assert not self.useContractedForCurrentFocus or endWord, (
+			"Must only translate contracted at end of word"
+		)
 		if self.useContractedForCurrentFocus:
 			# self.bufferText has been used by _reportContractedCell, so clear it.
 			self.bufferText = ""
@@ -456,13 +456,16 @@ class BrailleInputHandler(AutoPropertyObject):
 		newTableName = brailleTables.RENAMED_TABLES.get(tableName)
 		if newTableName:
 			tableName = config.conf["braille"]["inputTable"] = newTableName
-		table = config.conf["braille"]["inputTable"]
-		if table != self._table.fileName:
+		if config.conf["braille"]["inputTable"] == "auto":
+			tableName = brailleTables.getDefaultTableForCurLang(
+				brailleTables.TableType.INPUT,
+			)
+		if tableName != self._table.fileName:
 			try:
 				self._table = brailleTables.getTable(tableName)
 			except LookupError:
 				log.error(
-					f"Invalid input table ({tableName}), " f"falling back to default ({FALLBACK_TABLE}).",
+					f"Invalid input table ({tableName}), falling back to default ({FALLBACK_TABLE}).",
 				)
 				self._table = brailleTables.getTable(FALLBACK_TABLE)
 

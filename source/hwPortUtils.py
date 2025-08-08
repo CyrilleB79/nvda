@@ -1,11 +1,12 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2001-2023 Chris Liechti, NV Access Limited, Babbage B.V., Leonard de Ruijter
+# Copyright (C) 2001-2025 Chris Liechti, NV Access Limited, Babbage B.V., Leonard de Ruijter
 # Based on serial scanner code by Chris Liechti from https://raw.githubusercontent.com/pyserial/pyserial/81167536e796cc2e13aa16abd17a14634dc3aed1/pyserial/examples/scanwin32.py
 
 """Utilities for working with hardware connection ports."""
 
 import ctypes
 import itertools
+import math
 import typing
 import winreg
 from ctypes.wintypes import BOOL, DWORD, HWND, PDWORD, ULONG, USHORT, WCHAR
@@ -16,6 +17,7 @@ import config
 import hidpi
 import winKernel
 from logHandler import log
+from winAPI.constants import SystemErrorCodes
 from winKernel import SYSTEMTIME
 
 
@@ -69,7 +71,8 @@ class DEVPROPKEY(ctypes.Structure):
 
 class dummy(ctypes.Structure):
 	_fields_ = (("d1", DWORD), ("d2", WCHAR))
-	_pack_ = 1
+	# SetupAPI.h in the Windows headers includes pshpack8.h when 64 bit, pshpack1.h otherwise
+	_pack_ = 8 if ctypes.sizeof(ctypes.c_void_p) == 8 else 1
 
 
 SIZEOF_SP_DEVICE_INTERFACE_DETAIL_DATA_W = ctypes.sizeof(dummy)
@@ -206,6 +209,8 @@ def _getBluetoothPortInfo(regKey: int, hwID: str) -> dict:
 			usbIDStart = h.find("VID_")
 			if usbIDStart != -1:
 				info["usbID"] = hwID[usbIDStart : usbIDStart + 17]  # VID_xxxx&PID_xxxx
+		case _:
+			log.debug(f"Unknown hardware ID {hwID!r}")
 	return info
 
 
@@ -402,8 +407,13 @@ def _listDevices(
 			class SP_DEVICE_INTERFACE_DETAIL_DATA_W(ctypes.Structure):
 				_fields_ = (
 					("cbSize", DWORD),
-					("DevicePath", WCHAR * (dwNeeded.value - ctypes.sizeof(DWORD))),
+					(
+						"DevicePath",
+						# Round up to the next WCHAR count to ensure proper memory alignment
+						WCHAR * math.ceil((dwNeeded.value - ctypes.sizeof(DWORD)) / ctypes.sizeof(WCHAR)),
+					),
 				)
+				_pack_ = dummy._pack_
 
 				def __str__(self):
 					return f"DevicePath:{self.DevicePath!r}"
@@ -496,7 +506,10 @@ class HIDD_ATTRIBUTES(ctypes.Structure):
 		super().__init__(Size=ctypes.sizeof(HIDD_ATTRIBUTES), **kwargs)
 
 
-def _getHidInfo(hwId, path):
+_getHidInfoCache: dict[str, dict] = {}
+
+
+def _getHidInfo(hwId: str, path: str) -> dict[str, typing.Any]:
 	info = {
 		"hardwareID": hwId,
 		"devicePath": path,
@@ -517,18 +530,28 @@ def _getHidInfo(hwId, path):
 	# Fetch additional info about the HID device.
 	from serial.win32 import FILE_FLAG_OVERLAPPED, INVALID_HANDLE_VALUE, CreateFile
 
-	handle = CreateFile(
-		path,
-		0,
-		winKernel.FILE_SHARE_READ | winKernel.FILE_SHARE_WRITE,
-		None,
-		winKernel.OPEN_EXISTING,
-		FILE_FLAG_OVERLAPPED,
-		None,
-	)
-	if handle == INVALID_HANDLE_VALUE:
-		if _isDebug():
-			log.debugWarning(f"Opening device {path} to get additional info failed: {ctypes.WinError()}")
+	if (
+		handle := CreateFile(
+			path,
+			0,
+			winKernel.FILE_SHARE_READ | winKernel.FILE_SHARE_WRITE,
+			None,
+			winKernel.OPEN_EXISTING,
+			FILE_FLAG_OVERLAPPED,
+			None,
+		)
+	) == INVALID_HANDLE_VALUE:
+		if (err := ctypes.GetLastError()) == SystemErrorCodes.SHARING_VIOLATION:
+			if _isDebug():
+				log.debugWarning(
+					f"Opening device {path} to get additional info failed because the device is being used. "
+					"Falling back to cache for device info",
+				)
+			if cachedInfo := _getHidInfoCache.get(path):
+				cachedInfo.update(info)
+				return cachedInfo
+		elif _isDebug():
+			log.debugWarning(f"Opening device {path} to get additional info failed: {ctypes.WinError(err)}")
 		return info
 	try:
 		attribs = HIDD_ATTRIBUTES()
@@ -555,6 +578,7 @@ def _getHidInfo(hwId, path):
 				ctypes.windll.hid.HidD_FreePreparsedData(pd)
 	finally:
 		winKernel.closeHandle(handle)
+	_getHidInfoCache[path] = info
 	return info
 
 

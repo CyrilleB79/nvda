@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2018-2023 NV Access Limited, Babbage B.V., Leonard de Ruijter
+# Copyright (C) 2018-2025 NV Access Limited, Babbage B.V., Leonard de Ruijter
 
 """Screen curtain implementation based on the windows magnification API.
 The Magnification API has been marked by MS as unsupported for WOW64 applications such as NVDA. (#12491)
@@ -24,6 +24,12 @@ from logHandler import log
 from typing import Optional, Type
 import nvwave
 import globalVars
+import NVDAHelper
+
+
+isScreenFullyBlack = NVDAHelper.localLib.isScreenFullyBlack
+isScreenFullyBlack.argtypes = ()
+isScreenFullyBlack.restype = BOOL
 
 
 class MAGCOLOREFFECT(Structure):
@@ -51,14 +57,29 @@ class Magnification:
 	# Set full screen color effect
 	_MagSetFullscreenColorEffectFuncType = WINFUNCTYPE(BOOL, POINTER(MAGCOLOREFFECT))
 	_MagSetFullscreenColorEffectArgTypes = ((1, "effect"),)
+	MagSetFullscreenColorEffect = _MagSetFullscreenColorEffectFuncType(
+		("MagSetFullscreenColorEffect", _magnification),
+		_MagSetFullscreenColorEffectArgTypes,
+	)
+	MagSetFullscreenColorEffect.errcheck = _errCheck
 
 	# Get full screen color effect
 	_MagGetFullscreenColorEffectFuncType = WINFUNCTYPE(BOOL, POINTER(MAGCOLOREFFECT))
 	_MagGetFullscreenColorEffectArgTypes = ((2, "effect"),)
+	MagGetFullscreenColorEffect = _MagGetFullscreenColorEffectFuncType(
+		("MagGetFullscreenColorEffect", _magnification),
+		_MagGetFullscreenColorEffectArgTypes,
+	)
+	MagGetFullscreenColorEffect.errcheck = _errCheck
 
 	# show system cursor
 	_MagShowSystemCursorFuncType = WINFUNCTYPE(BOOL, BOOL)
 	_MagShowSystemCursorArgTypes = ((1, "showCursor"),)
+	MagShowSystemCursor = _MagShowSystemCursorFuncType(
+		("MagShowSystemCursor", _magnification),
+		_MagShowSystemCursorArgTypes,
+	)
+	MagShowSystemCursor.errcheck = _errCheck
 
 	# initialize
 	_MagInitializeFuncType = WINFUNCTYPE(BOOL)
@@ -69,29 +90,6 @@ class Magnification:
 	_MagUninitializeFuncType = WINFUNCTYPE(BOOL)
 	MagUninitialize = _MagUninitializeFuncType(("MagUninitialize", _magnification))
 	MagUninitialize.errcheck = _errCheck
-
-	# These magnification functions are not available on versions of Windows prior to Windows 8,
-	# and therefore looking them up from the magnification library will raise an AttributeError.
-	try:
-		MagSetFullscreenColorEffect = _MagSetFullscreenColorEffectFuncType(
-			("MagSetFullscreenColorEffect", _magnification),
-			_MagSetFullscreenColorEffectArgTypes,
-		)
-		MagSetFullscreenColorEffect.errcheck = _errCheck
-		MagGetFullscreenColorEffect = _MagGetFullscreenColorEffectFuncType(
-			("MagGetFullscreenColorEffect", _magnification),
-			_MagGetFullscreenColorEffectArgTypes,
-		)
-		MagGetFullscreenColorEffect.errcheck = _errCheck
-		MagShowSystemCursor = _MagShowSystemCursorFuncType(
-			("MagShowSystemCursor", _magnification),
-			_MagShowSystemCursorArgTypes,
-		)
-		MagShowSystemCursor.errcheck = _errCheck
-	except AttributeError:
-		MagSetFullscreenColorEffect = None
-		MagGetFullscreenColorEffect = None
-		MagShowSystemCursor = None
 
 
 # Translators: Name for a vision enhancement provider that disables output to the screen,
@@ -200,19 +198,19 @@ class WarnOnLoadDialog(MessageDialog):
 			settingsStorage._saveSpecificSettings(settingsStorage, settingsStorage.supportedSettings)
 		self.EndModal(result)
 
-	def _onDialogActivated(self, evt):
+	def _onActivateEvent(self, evt: wx.ActivateEvent):
 		# focus is normally set to the first child, however, we want people to easily be able to cancel this
 		# dialog
-		super()._onDialogActivated(evt)
+		super()._onActivateEvent(evt)
 		self.noButton.SetFocus()
 
-	def _onShowEvt(self, evt):
+	def _onShowEvent(self, evt: wx.ShowEvent):
 		"""When no other dialogs have been opened first, focus lands in the wrong place (on the checkbox),
 		so we correct it after the dialog is opened.
 		"""
 		if evt.IsShown():
 			self.noButton.SetFocus()
-		super()._onShowEvt(evt)
+		super()._onShowEvent(evt)
 
 
 class ScreenCurtainGuiPanel(
@@ -347,6 +345,8 @@ class ScreenCurtainProvider(providerBase.VisionEnhancementProvider):
 		try:
 			Magnification.MagSetFullscreenColorEffect(TRANSFORM_BLACK)
 			Magnification.MagShowSystemCursor(False)
+			if not isScreenFullyBlack():
+				raise RuntimeError("Screen is not black.")
 		except Exception as e:
 			Magnification.MagUninitialize()
 			raise e

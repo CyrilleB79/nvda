@@ -16,6 +16,29 @@ from typing import (
 import config
 from synthDriverHandler import getSynth
 
+__all__ = [
+	"SpeechCommand",
+	"_CancellableSpeechCommand",
+	"SynthCommand",
+	"IndexCommand",
+	"SynthParamCommand",
+	"CharacterModeCommand",
+	"LangChangeCommand",
+	"BreakCommand",
+	"EndUtteranceCommand",
+	"SuppressUnicodeNormalizationCommand",
+	"BaseProsodyCommand",
+	"PitchCommand",
+	"VolumeCommand",
+	"RateCommand",
+	"PhonemeCommand",
+	"BaseCallbackCommand",
+	"CallbackCommand",
+	"BeepCommand",
+	"WaveFileCommand",
+	"ConfigProfileTriggerCommand",
+]
+
 
 class SpeechCommand(object):
 	"""The base class for objects that can be inserted between strings of text to perform actions,
@@ -80,7 +103,7 @@ class _CancellableSpeechCommand(SpeechCommand):
 	def __repr__(self):
 		return (
 			f"CancellableSpeech ("
-			f"{ 'cancelled' if self._checkIfCancelled() else 'still valid'}"
+			f"{'cancelled' if self._checkIfCancelled() else 'still valid'}"
 			f"{self._getFormattedDevInfo()}"
 			f")"
 		)
@@ -157,9 +180,9 @@ class CharacterModeCommand(SynthParamCommand):
 class LangChangeCommand(SynthParamCommand):
 	"""A command to switch the language within speech."""
 
-	def __init__(self, lang: Optional[str]):
+	def __init__(self, lang: str | None):
 		"""
-		@param lang: the language to switch to: If None then the NVDA locale will be used.
+		:param lang: The language to switch to: If None then the NVDA locale will be used.
 		"""
 		self.lang = lang
 		self.isDefault = not lang

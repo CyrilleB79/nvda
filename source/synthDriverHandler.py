@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2006-2023 NV Access Limited, Peter Vágner, Aleksey Sadovoy,
+# Copyright (C) 2006-2024 NV Access Limited, Peter Vágner, Aleksey Sadovoy,
 # Joseph Lee, Arnold Loubriat, Leonard de Ruijter
 
 import pkgutil
@@ -12,6 +12,8 @@ from typing import (
 	OrderedDict,
 	Set,
 	Tuple,
+	TYPE_CHECKING,
+	Type,
 )
 from locale import strxfrm
 
@@ -29,6 +31,9 @@ from autoSettingsUtils.driverSetting import BooleanDriverSetting, DriverSetting,
 from autoSettingsUtils.utils import StringParameterInfo
 
 from abc import abstractmethod
+
+if TYPE_CHECKING:
+	from speech.commands import SynthCommand
 
 
 class LanguageInfo(StringParameterInfo):
@@ -96,8 +101,7 @@ class SynthDriver(driverHandler.Driver):
 	#: @type: str
 	description = ""
 	#: The speech commands supported by the synth.
-	#: @type: set of L{SynthCommand} subclasses.
-	supportedCommands = frozenset()
+	supportedCommands: set[Type["SynthCommand"]] = frozenset()
 	#: The notifications provided by the synth.
 	#: @type: set of L{extensionPoints.Action} instances
 	supportedNotifications = frozenset()
@@ -217,6 +221,18 @@ class SynthDriver(driverHandler.Driver):
 			displayName=pgettext("synth setting", "Inflection"),
 		)
 
+	@classmethod
+	def UseWasapiSetting(cls) -> BooleanDriverSetting:
+		"""Factory function for creating 'Use WASAPI' setting."""
+		return BooleanDriverSetting(
+			"useWasapi",
+			# Translators: Label for a setting in voice settings dialog.
+			# "WASAPI" is an acronym for an audio output framework, and should be translated as-is.
+			_("Use modern audio output system (WASAPI)"),
+			availableInSettingsRing=False,
+			defaultVal=True,
+		)
+
 	@abstractmethod
 	def speak(self, speechSequence):
 		"""
@@ -315,6 +331,21 @@ class SynthDriver(driverHandler.Driver):
 		@type switch: bool
 		"""
 		pass
+
+	def languageIsSupported(self, lang: str | None) -> bool:
+		"""Determines if the specified language is supported.
+		:param lang: A language code or None.
+		:return: ``True`` if the language is supported, ``False`` otherwise.
+		"""
+		if lang is None:
+			return True
+		for availableLang in self.availableLanguages:
+			if (
+				lang == languageHandler.normalizeLanguage(availableLang)
+				or lang == languageHandler.normalizeLanguage(availableLang).split("_")[0]
+			):
+				return True
+		return False
 
 	def initSettings(self):
 		firstLoad = not config.conf[self._configSection].isSet(self.name)
@@ -485,7 +516,7 @@ def setSynth(name: Optional[str], isFallback: bool = False):
 		log.error(f"setSynth failed for {name}", exc_info=True)
 
 	if _curSynth is not None:
-		_audioOutputDevice = config.conf["speech"]["outputDevice"]
+		_audioOutputDevice = config.conf["audio"]["outputDevice"]
 		if not isFallback:
 			config.conf["speech"]["synth"] = name
 		log.info(f"Loaded synthDriver {_curSynth.name}")
@@ -530,7 +561,7 @@ def handlePostConfigProfileSwitch(resetSpeechIfNeeded=True):
 	@type resetSpeechIfNeeded: bool
 	"""
 	conf = config.conf["speech"]
-	if conf["synth"] != _curSynth.name or conf["outputDevice"] != _audioOutputDevice:
+	if conf["synth"] != _curSynth.name or config.conf["audio"]["outputDevice"] != _audioOutputDevice:
 		if resetSpeechIfNeeded:
 			# Reset the speech queues as we are now going to be using a new synthesizer with entirely separate state.
 			import speech
@@ -566,4 +597,12 @@ The local system should be notified about synth parameters at the remote system.
 @type audioOutputDevice: str
 @param isFallback: Whether the synth is set as fallback synth due to another synth's failure
 @type isFallback: bool
+"""
+
+pre_synthSpeak = extensionPoints.Action()
+"""
+Notifies when speak() of the current synthesizer is about to be called.
+
+:param speechSequence: the speech sequence to pass to speak()
+:type speechSequence: speech.SpeechSequence
 """

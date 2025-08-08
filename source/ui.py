@@ -21,15 +21,25 @@ from comtypes import IUnknown
 from comtypes import automation
 from comtypes import COMError
 from html import escape
+
+import nh3
 from logHandler import log
 import gui
 import speech
 import braille
 from config.configFlags import TetherTo
 import globalVars
-from typing import Optional
+from typing import Final, Optional
+from collections.abc import Callable
 
 from utils.security import isRunningOnSecureDesktop
+import core
+
+
+_DELAY_BEFORE_MESSAGE_MS: Final[int] = 1
+"""Duration in milliseconds for which to delay speaking and brailling a message, so that any UI changes don't interrupt it.
+1ms is a magic number. It can be increased if it is found to be too short, but it should be kept to a minimum.
+"""
 
 
 # From urlmon.h
@@ -135,6 +145,7 @@ def browseableMessage(
 	isHtml: bool = False,
 	closeButton: bool = False,
 	copyButton: bool = False,
+	sanitizeHtmlFunc: Callable[[str], str] = nh3.clean,
 ) -> None:
 	"""Present a message to the user that can be read in browse mode.
 	The message will be presented in an HTML document.
@@ -144,6 +155,10 @@ def browseableMessage(
 	:param isHtml: Whether the message is html, defaults to False.
 	:param closeButton: Whether to include a "close" button, defaults to False.
 	:param copyButton: Whether to include a "copy" (to clipboard) button, defaults to False.
+	:param sanitizeHtmlFunc: How to sanitize the html message, if isHtml is True.
+	Defaults to `nh3.clean` with default arguments.
+	Ensure to sanitize the html message if the source of it could be untrusted.
+	Any translatable string, or user generated content should be sanitized.
 	"""
 	if isRunningOnSecureDesktop():
 		_warnBrowsableMessageNotAvailableOnSecureScreens(title)
@@ -179,10 +194,11 @@ def browseableMessage(
 	d.add("title", title)
 
 	if not isHtml:
-		message = f"<pre>{escape(message)}</pre>"
+		messageSanitized = f"<pre>{escape(message)}</pre>"
 	else:
-		log.warning("Passing raw HTML to ui.browseableMessage!")
-	d.add("message", message)
+		log.debug("Sanitizing raw HTML before passing to ui.browseableMessage")
+		messageSanitized = sanitizeHtmlFunc(message)
+	d.add("message", messageSanitized)
 
 	# Translators: A notice to the user that a copy operation succeeded.
 	d.add("copySuccessfulAlertText", _("Text copied."))
@@ -232,6 +248,33 @@ def message(
 	"""
 	speech.speakMessage(text, priority=speechPriority)
 	braille.handler.message(brailleText if brailleText is not None else text)
+
+
+def delayedMessage(
+	text: str,
+	speechPriority: speech.Spri | None = speech.Spri.NOW,
+	brailleText: str | None = None,
+) -> None:
+	"""Present a message to the user, delayed by a short amount so it isn't interrupted by UI changes.
+
+	In most cases, :func:`ui.message` should be preferred.
+	However, in cases where a message is presented at the same time as a UI change
+	(for instance as confirmation that the action performed by an item in the NVDA menu has been performed),
+	this function may be needed so that the message is not immediately interrupted by the UI changing.
+
+	The message will be presented in both speech and braille.
+
+	:param text: The text of the message.
+	:param speechPriority: The speech priority, defaults to SpeechPriority.NOW.
+	:param brailleText: If specified, present this alternative text on the braille display., defaults to None
+	"""
+	core.callLater(
+		_DELAY_BEFORE_MESSAGE_MS,
+		message,
+		text=text,
+		speechPriority=speechPriority,
+		brailleText=brailleText,
+	)
 
 
 def reviewMessage(text: str, speechPriority: Optional[speech.Spri] = None):

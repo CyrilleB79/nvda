@@ -26,7 +26,7 @@ class FeatureFlagEnumProtocol(Protocol):
 	This definition is provided only for type annotations
 	"""
 
-	DEFAULT: enum.Enum  # Required enum member
+	DEFAULT: "FlagValueEnum"  # Required enum member
 	name: str  # comes from enum.Enum
 	value: str  # comes from enum.Enum
 
@@ -64,21 +64,6 @@ class BoolFlag(DisplayStringEnum):
 				", DEFAULT must be combined with a 'behavior for default' to be Truthy or Falsy",
 			)
 		return self == BoolFlag.ENABLED
-
-
-class AppsVolumeAdjusterFlag(DisplayStringEnum):
-	@property
-	def _displayStringLabels(self):
-		return {
-			# Translators: Label for applications volume adjuster in NVDA settings.
-			self.DISABLED: _("Disabled Applications volume adjuster"),
-			# Translators: Label for applications volume adjuster in NVDA settings.
-			self.ENABLED: _("Enabled Applications volume adjuster"),
-		}
-
-	DEFAULT = enum.auto()
-	DISABLED = enum.auto()
-	ENABLED = enum.auto()
 
 
 class ParagraphNavigationFlag(DisplayStringEnum):

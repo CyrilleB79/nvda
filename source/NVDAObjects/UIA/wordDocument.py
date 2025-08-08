@@ -1,7 +1,7 @@
 # This file is covered by the GNU General Public License.
 # A part of NonVisual Desktop Access (NVDA)
 # See the file COPYING for more details.
-# Copyright (C) 2016-2023 NV Access Limited, Joseph Lee, Jakub Lukowicz, Cyrille Bougot
+# Copyright (C) 2016-2025 NV Access Limited, Joseph Lee, Jakub Lukowicz, Cyrille Bougot
 
 from typing import (
 	Optional,
@@ -51,6 +51,13 @@ class UIACustomAttributeID(enum.IntEnum):
 	COLUMN_NUMBER = 2
 	SECTION_NUMBER = 3
 	BOOKMARK_NAME = 4
+	COLUMNS_IN_SECTION = 5
+	EXPAND_COLLAPSE_STATE = 6
+
+
+class EXPAND_COLLAPSE_STATE(enum.IntEnum):
+	COLLAPSED = 0
+	EXPANDED = 1
 
 
 #: the non-printable unicode character that represents the end of cell or end of row mark in Microsoft Word
@@ -301,6 +308,12 @@ class WordDocumentTextInfo(UIATextInfo):
 		return super(WordDocumentTextInfo, self).move(unit, direction, endPoint)
 
 	def expand(self, unit):
+		if unit == textInfos.UNIT_CELL:
+			cell = self.obj._getTableCellCoordsCached(self, axis=None)
+			info = self.obj._getTableCellAt(cell.tableID, self, cell.row, cell.col)
+			self.start = info.start
+			self.end = info.end
+			return
 		super(WordDocumentTextInfo, self).expand(unit)
 		# #7970: MS Word refuses to expand to line when on the final line and it is blank.
 		# This among other things causes a newly inserted bullet not to be spoken or brailled.
@@ -349,20 +362,21 @@ class WordDocumentTextInfo(UIATextInfo):
 				curLevel = 0
 				mathLevel = None
 				mathStartIndex = None
-				mathEndIndex = None
-				for index in range(len(fields)):
+				index = 0
+				# we delete items from 'fields' in the loop, so we can't use a for loop
+				while index < len(fields):
 					field = fields[index]
 					if isinstance(field, textInfos.FieldCommand) and field.command == "controlStart":
 						curLevel += 1
-						if mathLevel is None and field.field.get("mathml"):
+						if field.field.get("mathml"):
 							mathLevel = curLevel
 							mathStartIndex = index
 					elif isinstance(field, textInfos.FieldCommand) and field.command == "controlEnd":
-						if curLevel == mathLevel:
-							mathEndIndex = index
+						if curLevel == mathLevel and field.field.get("mathml"):
+							del fields[mathStartIndex + 1 : index]
+							index = mathStartIndex + 1
 						curLevel -= 1
-				if mathEndIndex is not None:
-					del fields[mathStartIndex + 1 : mathEndIndex]
+					index += 1
 
 		# Sometimes embedded objects and graphics In MS Word can cause a controlStart then a controlEnd with no actual formatChange / text in the middle.
 		# SpeakTextInfo always expects that the first lot of controlStarts will always contain some text.
@@ -483,6 +497,23 @@ class WordDocumentTextInfo(UIATextInfo):
 					)
 					if isinstance(textColumnNumber, int):
 						formatField.field["text-column-number"] = textColumnNumber
+			# #18279: It is only safe to fetch the expand/collapse state in MS Word 16.0.18226 or later,
+			# as earlier versions that support Custom attribute Values but not this particular argument will crash.
+			try:
+				officeVersion = tuple(int(x) for x in self.obj.appModule.productVersion.split(".")[:3])
+			except Exception:
+				log.error("Unable to parse Office version", exc_info=True)
+				officeVersion = (0, 0, 0)
+			if officeVersion >= (16, 0, 18226):
+				expandCollapseState = UIARemote.msWord_getCustomAttributeValue(
+					docElement,
+					textRange,
+					UIACustomAttributeID.EXPAND_COLLAPSE_STATE,
+				)
+				if expandCollapseState == EXPAND_COLLAPSE_STATE.COLLAPSED:
+					formatField.field["collapsed"] = True
+				elif expandCollapseState == EXPAND_COLLAPSE_STATE.EXPANDED:
+					formatField.field["collapsed"] = False
 		return formatField
 
 	def _getIndentValueDisplayString(self, val: float) -> str:
