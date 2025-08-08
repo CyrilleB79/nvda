@@ -10,8 +10,7 @@ This will automatically apply lint fixes where possible, and will cancel the com
 
 From a shell, [set up pre-commit scripts](https://pre-commit.com/#pre-commit-install) for your NVDA python environment:
 
-1. `venvUtils\ensureAndActivate.bat`
-1. `pre-commit install`
+`uv run pre-commit install`
 
 Alternatively, set up pre-commit scripts globally:
 
@@ -27,7 +26,7 @@ You can run pre-commit hooks manually with [`pre commit run`](https://pre-commit
 
 - You can filter files with `--files` and `--all-files`
 - You can also compare two revisions:
-`pre-commit run --from-ref origin/master --to-ref HEAD`
+`uv run pre-commit run --from-ref origin/master --to-ref HEAD`
 
 ### Translatable string checks
 
@@ -41,13 +40,15 @@ scons checkPot
 
 Our linting process involves running [Ruff](https://docs.astral.sh/ruff) to pick up Python linting issues and auto-apply fixes where possible.
 
+[pyright](https://microsoft.github.io/pyright/) is used for static type checking.
+
 To run the linter locally:
 
 ```cmd
 runlint.bat
 ```
 
-To be warned about linting errors faster, you may wish to integrate Ruff with your IDE or other development tools you are using.
+To be warned about linting errors faster, you may wish to integrate Ruff and pyright with your IDE or other development tools you are using.
 
 ### Unit Tests
 

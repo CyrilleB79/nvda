@@ -12,6 +12,8 @@ from typing import (
 	OrderedDict,
 	Set,
 	Tuple,
+	TYPE_CHECKING,
+	Type,
 )
 from locale import strxfrm
 
@@ -29,6 +31,9 @@ from autoSettingsUtils.driverSetting import BooleanDriverSetting, DriverSetting,
 from autoSettingsUtils.utils import StringParameterInfo
 
 from abc import abstractmethod
+
+if TYPE_CHECKING:
+	from speech.commands import SynthCommand
 
 
 class LanguageInfo(StringParameterInfo):
@@ -96,8 +101,7 @@ class SynthDriver(driverHandler.Driver):
 	#: @type: str
 	description = ""
 	#: The speech commands supported by the synth.
-	#: @type: set of L{SynthCommand} subclasses.
-	supportedCommands = frozenset()
+	supportedCommands: set[Type["SynthCommand"]] = frozenset()
 	#: The notifications provided by the synth.
 	#: @type: set of L{extensionPoints.Action} instances
 	supportedNotifications = frozenset()
@@ -217,6 +221,18 @@ class SynthDriver(driverHandler.Driver):
 			displayName=pgettext("synth setting", "Inflection"),
 		)
 
+	@classmethod
+	def UseWasapiSetting(cls) -> BooleanDriverSetting:
+		"""Factory function for creating 'Use WASAPI' setting."""
+		return BooleanDriverSetting(
+			"useWasapi",
+			# Translators: Label for a setting in voice settings dialog.
+			# "WASAPI" is an acronym for an audio output framework, and should be translated as-is.
+			_("Use modern audio output system (WASAPI)"),
+			availableInSettingsRing=False,
+			defaultVal=True,
+		)
+
 	@abstractmethod
 	def speak(self, speechSequence):
 		"""
@@ -315,6 +331,21 @@ class SynthDriver(driverHandler.Driver):
 		@type switch: bool
 		"""
 		pass
+
+	def languageIsSupported(self, lang: str | None) -> bool:
+		"""Determines if the specified language is supported.
+		:param lang: A language code or None.
+		:return: ``True`` if the language is supported, ``False`` otherwise.
+		"""
+		if lang is None:
+			return True
+		for availableLang in self.availableLanguages:
+			if (
+				lang == languageHandler.normalizeLanguage(availableLang)
+				or lang == languageHandler.normalizeLanguage(availableLang).split("_")[0]
+			):
+				return True
+		return False
 
 	def initSettings(self):
 		firstLoad = not config.conf[self._configSection].isSet(self.name)
