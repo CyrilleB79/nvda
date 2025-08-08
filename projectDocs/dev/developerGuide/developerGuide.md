@@ -14,7 +14,7 @@ The NVDA Add-on API includes all NVDA internals, except symbols that are prefixe
 
 The NVDA Add-on API changes over time, for example because of the addition of new features, removal or replacement of outdated libraries, deprecation of unused or replaced code and methodologies, and changes to Python.
 Important changes to the API are announced on the [NVDA API mailing list](https://groups.google.com/a/nvaccess.org/g/nvda-api/about).
-Changes relevant to developers are also announced via the [NVDA changes file](https://www.nvaccess.org/files/nvda/documentation/changes.html).
+Changes relevant to developers are also announced via the [NVDA changes file](https://download.nvaccess.org/documentation/changes.html).
 Any changes to the API policy outlined in this section will be conveyed via these two channels.
 
 API breaking releases happen at most once per year, these are `.1` releases, e.g. `2022.1`.
@@ -74,7 +74,7 @@ It is assumed that characters will have the same description regardless of their
 
 #### Translating this file {#TranslatingCharacterDescriptionsFile}
 
-Translation of `characterDescriptions.dic` happens on SVN following [the automatic workflow process](https://github.com/nvaccess/nvda/wiki/TranslatingUsingAutomaticProcess).
+Translation of `characterDescriptions.dic` happens via [Pull Request to NVDA](https://github.com/nvaccess/nvda/blob/master/projectDocs/translating/github.md).
 
 For a full example and reference, please look at [the English `characterDescriptions.dic` file](https://github.com/nvaccess/nvda/blob/master/source/locale/en/characterDescriptions.dic).
 
@@ -90,11 +90,6 @@ Blank lines and lines beginning with a "`#`" character are ignored.
 All locales implicitly inherit the symbol information for English, though any of this information can be overridden.
 
 The file contains two sections, [complex symbols](#complexSymbols) and [symbols](#symbolInformation).
-
-#### Translating this file {#TranslatingSymbolsFile}
-
-Translation of `symbols.dic` happens on SVN following [the automatic workflow process](https://github.com/nvaccess/nvda/wiki/TranslatingUsingAutomaticProcess).
-See the file [locale\en\symbols.dic](https://github.com/nvaccess/nvda/blob/master/source/locale/en/symbols.dic) for the English definitions which are inherited for all locales.
 
 #### Defining Complex Symbols {#complexSymbols}
 
@@ -206,6 +201,12 @@ You would also include something like the following in the main symbols section:
 ```
 thousands separator	comma	all	norep
 ```
+
+#### Translating this file {#TranslatingSymbolsFile}
+
+Translation of `symbols.dic` happens via [Pull Request to NVDA](https://github.com/nvaccess/nvda/blob/master/projectDocs/translating/github.md).
+
+See the file [locale\en\symbols.dic](https://github.com/nvaccess/nvda/blob/master/source/locale/en/symbols.dic) for the English definitions which are inherited for all locales.
 
 ### Gestures {#TranslatingGestures}
 
@@ -321,14 +322,11 @@ In this case, you will have to explore NVDA's source code to find this parent cl
 
 #### Translating this file {#TranslatingGesturesFile}
 
-Translations for `gestures.ini` happen on SVN following [the automatic workflow process](https://github.com/nvaccess/nvda/wiki/TranslatingUsingAutomaticProcess).
+Translation of `gestures.ini` happens via [Pull Request to NVDA](https://github.com/nvaccess/nvda/blob/master/projectDocs/translating/github.md).
 
-1. In your local copy of the screenReaderTranslations repository, check if the `gestures.ini` file exists, e.g. `d:\SVN\SRT\fr\gestures.ini`
-   * If this file does not exist, create it by copying it from the last version of NVDA.
-   * If it already exists, all is fine.
-2. In this file the sections correspond to the class to which the script belongs.
+1. In this file the sections correspond to the class to which the script belongs.
 If the class your looking for does not exist, create this section.
-3. Under the targeted section, add a line corresponding to the new shortcut. e.g.:
+1. Under the targeted section, add a line corresponding to the new shortcut. e.g.:
 
    ```
    toggleBold = kb:control+g, kb:control+shift+b
@@ -336,16 +334,13 @@ If the class your looking for does not exist, create this section.
 
    If a line already exists for the script name, but you want to modify the shortcut, add the new shortcut on the same line, separating each shortcut with a comma ("`,`").
 
-4. If you want to unmap the original shortcut, just map it to `None`, e.g.:
+1. If you want to unmap the original shortcut, just map it to `None`, e.g.:
 
    ```
    None = kb:control+b
    ```
 
    Unmapping the original shortcut is only required if this shortcut does not match any other remapped locale shortcut.
-
-5. Save your file in UTF-8 format.
-6. Commit your changes to the screenReaderTranslations repo.
 
 ## Plugins {#plugins}
 ### Overview {#pluginsOverview}
@@ -1384,6 +1379,7 @@ For examples of how to define and use new extension points, please see the code 
 |`Action` |`pre_speechCanceled` |Triggered before speech is canceled.|
 |`Action` |`pre_speech` |Triggered before NVDA handles prepared speech.|
 |`Action` |`post_speechPaused` |Triggered when speech is paused or resumed.|
+|`Action` |`pre_speechQueued` |Triggered after speech is processed and normalized and directly before it is enqueued.|
 |`Filter` |`filter_speechSequence` |Allows components or add-ons to filter speech sequence before it passes to the synth driver.|
 
 ### synthDriverHandler {#synthDriverHandlerExtPts}
@@ -1393,6 +1389,7 @@ For examples of how to define and use new extension points, please see the code 
 |`Action` |`synthIndexReached` |Notifies when a synthesizer reaches an index during speech.|
 |`Action` |`synthDoneSpeaking` |Notifies when a synthesizer finishes speaking.|
 |`Action` |`synthChanged` |Notifies of synthesizer changes.|
+|`Action` |`pre_synthSpeak` |Notifies when the current synthesizer is about to speak something.|
 
 ### tones {#tonesExtPts}
 
@@ -1504,13 +1501,15 @@ match saveDialog.ShowModal():
 For non-modal dialogs, the easiest way to respond to the user pressing a button is via callback methods.
 
 ```py
-def readChangelog():
+from gui.message import Payload
+
+def readChangelog(payload: Payload):
 	...  # Do something
 
-def downloadUpdate():
+def downloadUpdate(payload: Payload):
 	...  # Do something
 
-def remindLater():
+def remindLater(payload: Payload):
 	...  # Do something
 
 updateDialog = MessageDialog(
@@ -1661,6 +1660,15 @@ The following default button sets are available:
 | `SAVE_NO_CANCEL` | `DefaultButton.SAVE`, `DefaultButton.NO`, `DefaultButton.CANCEL` | `addSaveNoCancelButtons` | The label of the no button is overridden to be "Do&n't save". |
 
 If none of the standard `ReturnCode` values are suitable for your button, you may also use `ReturnCode.CUSTOM_1` through `ReturnCode.CUSTOM_5`, which will not conflict with any built-in identifiers.
+
+#### Callbacks
+
+A convenient way of responding to button presses, especially for non-modal message dialogs, is to attach callbacks to the buttons.
+This is achieved by passing a `callback` function to `addButton`, `addButtons`, or any of the add button helpers.
+
+A callback should be a function which accepts exactly one positional argument.
+When called, a `Payload` data structure will be passed in.
+This data structure currently contains no information, though in future it may be augmented to contain information about the dialog's state and the context from which the callback was called.
 
 #### Convenience methods
 

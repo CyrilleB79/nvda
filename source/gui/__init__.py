@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2024 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Mesar Hameed, Joseph Lee,
+# Copyright (C) 2006-2025 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Mesar Hameed, Joseph Lee,
 # Thomas Stivers, Babbage B.V., Accessolutions, Julien Cochuyt, Cyrille Bougot, Luke Davis
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
@@ -11,11 +11,12 @@ import ctypes
 import warnings
 import wx
 import wx.adv
+import wx.lib.agw.persist
 
 import globalVars
 import tones
 import ui
-from documentationUtils import getDocFilePath, reportNoDocumentation
+from documentationUtils import getDocFilePath, displayLicense, reportNoDocumentation
 from logHandler import log
 import config
 import versionInfo
@@ -47,6 +48,8 @@ from .nvdaControls import _ContinueCancelDialog
 # Be careful when removing, and only do in a compatibility breaking release.
 from .exit import ExitDialog
 from .settingsDialogs import (
+	AddonStorePanel,
+	AdvancedPanel,
 	AudioPanel,
 	BrailleDisplaySelectionDialog,
 	BrailleSettingsPanel,
@@ -59,13 +62,15 @@ from .settingsDialogs import (
 	MultiCategorySettingsDialog,
 	NVDASettingsDialog,
 	ObjectPresentationPanel,
+	RemoteSettingsPanel,
+	ReviewCursorPanel,
 	SettingsDialog,
 	SpeechSettingsPanel,
 	SpeechSymbolsDialog,
 	SynthesizerSelectionDialog,
 	TouchInteractionPanel,
-	ReviewCursorPanel,
 	UwpOcrPanel,
+	VisionSettingsPanel,
 )
 from .startupDialogs import WelcomeDialog
 from .inputGestures import InputGesturesDialog
@@ -124,7 +129,7 @@ def __getattr__(attrName: str) -> Any:
 		return SettingsPanel
 	if attrName == "ExecAndPump" and NVDAState._allowDeprecatedAPI():
 		log.warning(
-			"Importing ExecAndPump from here is deprecated. " "Import ExecAndPump from systemUtils instead. ",
+			"Importing ExecAndPump from here is deprecated. Import ExecAndPump from systemUtils instead. ",
 			# Include stack info so testers can report warning to add-on author.
 			stack_info=True,
 		)
@@ -234,6 +239,14 @@ class MainFrame(wx.Frame):
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
+		except Exception:
+			messageBox(
+				# Translators: Message shown when current configuration cannot be saved, for an unknown reason.
+				_("Could not save configuration; see the log for more details."),
+				# Translators: the title of an error message dialog
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
 
 	@blockAction.when(blockAction.Context.MODAL_DIALOG_OPEN)
 	def popupSettingsDialog(self, dialog: Type[SettingsDialog], *args, **kwargs):
@@ -334,6 +347,9 @@ class MainFrame(wx.Frame):
 	def onAudioSettingsCommand(self, evt: wx.CommandEvent):
 		self.popupSettingsDialog(NVDASettingsDialog, AudioPanel)
 
+	def onVisionSettingsCommand(self, evt: wx.CommandEvent):
+		self.popupSettingsDialog(NVDASettingsDialog, VisionSettingsPanel)
+
 	def onKeyboardSettingsCommand(self, evt):
 		self.popupSettingsDialog(NVDASettingsDialog, KeyboardSettingsPanel)
 
@@ -358,8 +374,20 @@ class MainFrame(wx.Frame):
 	def onDocumentFormattingCommand(self, evt):
 		self.popupSettingsDialog(NVDASettingsDialog, DocumentFormattingPanel)
 
+	@blockAction.when(blockAction.Context.SECURE_MODE)
+	def onAddonStoreSettingsCommand(self, evt: wx.CommandEvent):
+		self.popupSettingsDialog(NVDASettingsDialog, AddonStorePanel)
+
 	def onUwpOcrCommand(self, evt):
 		self.popupSettingsDialog(NVDASettingsDialog, UwpOcrPanel)
+
+	@blockAction.when(blockAction.Context.SECURE_MODE)
+	def onRemoteAccessSettingsCommand(self, evt):
+		self.popupSettingsDialog(NVDASettingsDialog, RemoteSettingsPanel)
+
+	@blockAction.when(blockAction.Context.SECURE_MODE)
+	def onAdvancedSettingsCommand(self, evt: wx.CommandEvent):
+		self.popupSettingsDialog(NVDASettingsDialog, AdvancedPanel)
 
 	@blockAction.when(blockAction.Context.SECURE_MODE)
 	def onSpeechSymbolsCommand(self, evt):
@@ -519,7 +547,7 @@ class MainFrame(wx.Frame):
 			helpId="RunCOMRegistrationFixingTool",
 		)
 		response: int = introDialog.ShowModal()
-		if response == wx.CANCEL:
+		if response != wx.OK:
 			log.debug("Run of COM Registration Fixing Tool canceled before UAC.")
 			return
 		progressDialog = IndeterminateProgressDialog(
@@ -804,22 +832,9 @@ class SysTrayIcon(wx.adv.TaskBarIcon):
 
 			self.helpMenu.AppendSeparator()
 
-			# Translators: The label for the menu item to view NVDA License document.
+			# Translators: The label for the menu item to view the NVDA License.
 			item = self.helpMenu.Append(wx.ID_ANY, _("L&icense"))
-			self.Bind(
-				wx.EVT_MENU,
-				lambda evt: systemUtils._displayTextFileWorkaround(getDocFilePath("copying.txt", False)),
-				item,
-			)
-			# Translators: The label for the menu item to view NVDA Contributors list document.
-			item = self.helpMenu.Append(wx.ID_ANY, _("C&ontributors"))
-			self.Bind(
-				wx.EVT_MENU,
-				lambda evt: systemUtils._displayTextFileWorkaround(getDocFilePath("contributors.txt", False)),
-				item,
-			)
-
-			self.helpMenu.AppendSeparator()
+			self.Bind(wx.EVT_MENU, lambda evt: displayLicense(), item)
 
 			# Translators: The label for the menu item to open NVDA Welcome Dialog.
 			item = self.helpMenu.Append(wx.ID_ANY, _("We&lcome dialog..."))
@@ -872,9 +887,16 @@ def initialize():
 
 	monkeyPatches.applyWxMonkeyPatches(mainFrame, winUser, wx)
 
+	# Set up GUI persistence
+	persistenceManager = wx.lib.agw.persist.PersistenceManager.Get()
+	persistenceManager.SetPersistenceFile(NVDAState.WritePaths.guiStateFile)
+	if not NVDAState.shouldWriteToDisk():
+		persistenceManager.DisableSaving()
+
 
 def terminate():
 	global mainFrame
+	wx.lib.agw.persist.PersistenceManager.Free()
 	mainFrame = None
 
 
