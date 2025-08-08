@@ -13,7 +13,7 @@ from . import configDefaults
 #: provide an upgrade step (@see profileUpgradeSteps.py). An upgrade step does not need to be added when
 #: just adding a new element to (or removing from) the schema, only when old versions of the config
 #: (conforming to old schema versions) will not work correctly with the new schema.
-latestSchemaVersion = 17
+latestSchemaVersion = 18
 
 #: The configuration specification string
 #: @type: String
@@ -42,6 +42,8 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 	beepSpeechModePitch = integer(default=10000,min=50,max=11025)
 	autoLanguageSwitching = boolean(default=true)
 	autoDialectSwitching = boolean(default=false)
+	reportLanguage = boolean(default=false)
+	reportNotSupportedLanguage = option("speech", "beep", "off", default="speech")
 	delayedCharacterDescriptions = boolean(default=false)
 	excludedSpeechModes = int_list(default=list())
 	trimLeadingSilence = boolean(default=true)
@@ -96,7 +98,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 	reportLiveRegions = featureFlag(optionsEnum="BoolFlag", behaviorOfDefault="enabled")
 	fontFormattingDisplay = featureFlag(optionsEnum="FontFormattingBrailleModeFlag", behaviorOfDefault="LIBLOUIS")
 	[[auto]]
-    	excludedDisplays = string_list(default=list())
+    	excludedDisplays = string_list(default=list("dotPad"))
 
 	# Braille display driver settings
 	[[__many__]]

@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2009-2023 NV Access Limited, Joseph Lee, Mohammad Suliman, Babbage B.V., Leonard de Ruijter,
+# Copyright (C) 2009-2025 NV Access Limited, Joseph Lee, Mohammad Suliman, Babbage B.V., Leonard de Ruijter,
 # Bill Dengler, Cyrille Bougot
 
 """Support for UI Automation (UIA) controls."""
@@ -1438,8 +1438,11 @@ class UIA(Window):
 
 			sysListView32.findExtraOverlayClasses(self, clsList)
 
-		# Add editableText support if UIA supports a text pattern
-		if self.TextInfo == UIATextInfo:
+		# Add editableText support if UIA supports a text pattern and the control either has navigable text or supports selection.
+		if self.TextInfo == UIATextInfo and (
+			self._hasNavigableText
+			or self.UIATextPattern.SupportedTextSelection != UIAHandler.UIA.SupportedTextSelection_None
+		):
 			if self.UIAFrameworkId == "XAML":
 				# This UIA element is being exposed by the XAML framework.
 				clsList.append(XamlEditableText)
@@ -2426,10 +2429,10 @@ class UIA(Window):
 
 	def event_UIA_notification(
 		self,
-		notificationKind: Optional[int] = None,
-		notificationProcessing: Optional[int] = UIAHandler.NotificationProcessing_CurrentThenMostRecent,
-		displayString: Optional[str] = None,
-		activityId: Optional[str] = None,
+		notificationKind: int | None = None,
+		notificationProcessing: int | None = UIAHandler.NotificationProcessing_CurrentThenMostRecent,
+		displayString: str | None = None,
+		activityId: str | None = None,
 	):
 		"""
 		Introduced in Windows 10 Fall Creators Update (build 16299).
@@ -2441,14 +2444,19 @@ class UIA(Window):
 		if self.appModule != api.getFocusObject().appModule:
 			return
 		if displayString:
+			speechPriority = None
 			if notificationProcessing in (
 				UIAHandler.NotificationProcessing_ImportantMostRecent,
 				UIAHandler.NotificationProcessing_MostRecent,
 			):
 				# These notifications superseed earlier notifications.
 				# Note that no distinction is made between important and non-important.
-				speech.cancelSpeech()
-			ui.message(displayString)
+				# #17986: speak notification message as soon as possible while say all is in progress.
+				if speech.sayAll.SayAllHandler.isRunning():
+					speechPriority = speech.priorities.Spri.NOW
+				else:
+					speech.cancelSpeech()
+			ui.message(displayString, speechPriority=speechPriority)
 
 	def event_UIA_dragDropEffect(self):
 		# UIA drag drop effect was introduced in Windows 8.
@@ -2709,8 +2717,10 @@ class SuggestionsList(UIA):
 		# Item count must be the last one spoken.
 		suggestionsCount: int = self.childCount
 		suggestionsMessage = (
-			# Translators: message from to note the number of suggestions
-			ngettext("{} suggestion", "{} suggestions", suggestionsCount).format(suggestionsCount)
+			# Translators: message noting the number of suggestions that are available,
+			# for example in the Windows 11 Start Menu.
+			# {num} will be replaced with the number of suggestions
+			ngettext("{num} suggestion", "{num} suggestions", suggestionsCount).format(num=suggestionsCount)
 		)
 		ui.message(suggestionsMessage)
 

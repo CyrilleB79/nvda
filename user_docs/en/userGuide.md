@@ -93,8 +93,13 @@ For details regarding exceptions, access the license document from the NVDA menu
 
 ## NVDA Quick Start Guide {#NVDAQuickStartGuide}
 
-This quick start guide contains three main sections: downloading, initial setup, and running NVDA.
-These are followed by information on adjusting preferences, using add-ons, participating in the community and getting help.
+This quick start guide contains three main sections:
+
+* [Downloading](#GettingAndSettingUpNVDA): Where to get NVDA and steps for downloading it
+* [Initial setup](#SettingUpNVDA): Steps to install and setup NVDA
+* [Running NVDA](#RunningNVDA): Commonly used keystrokes and NVDA features
+
+These are followed by information on [adjusting preferences](#Preferences), [using add-ons](#Addons), [participating in the community](#Community) and [getting help](#GettingHelp).
 The information in this guide is condensed from other parts of the NVDA User Guide.
 Please refer to the full User Guide for more detailed information on each topic.
 
@@ -242,6 +247,7 @@ The actual commands will not execute while in input help mode.
 |Read status bar |`NVDA+end` |`NVDA+shift+end` |Reports the Status Bar if NVDA finds one. Pressing twice will spell the information. Pressing three times will copy it to the clipboard|
 |Read time |`NVDA+f12` |`NVDA+f12` |Pressing once reports the current time, pressing twice reports the date. The time and date are reported in the format specified in Windows settings for the system tray clock.|
 |Report text formatting |`NVDA+f` |`NVDA+f` |Reports text formatting. Pressing twice shows the information in a window|
+|Report language |Not assigned |Not assigned |Reports text language. Pressing twice shows the information in a window|
 |Report link destination |`NVDA+k` |`NVDA+k` |Pressing once speaks the destination URL of the link at the current caret or focus position. Pressing twice shows it in a window for more careful review|
 
 #### Toggle which information NVDA reads {#ToggleWhichInformationNVDAReads}
@@ -370,9 +376,9 @@ To learn more about and configure this behaviour, refer to ["Update Notification
 ### Community {#Community}
 
 NVDA has a vibrant user community.
-There is a main [English language email list](https://nvda.groups.io/g/nvda) and a page full of [local language groups](https://github.com/nvaccess/nvda/wiki/Connect).
-NV Access, makers of NVDA, are active on [Twitter](https://twitter.com/nvaccess) and [Facebook](https://www.facebook.com/NVAccess).
+NV Access, makers of NVDA, are active on [Mastodon](https://fosstodon.org/@NVAccess), [Twitter/X](https://x.com/nvaccess) and [Facebook](https://www.facebook.com/NVAccess).
 NV Access also have a regular [In-Process blog](https://www.nvaccess.org/category/in-process/).
+There is a main [NV Access owned email list](https://groups.google.com/a/nvaccess.org/g/nvda-users) and a page full of [other community groups](https://github.com/nvaccess/nvda/wiki/Connect).
 
 There is also an [NVDA Certified Expert](https://certification.nvaccess.org/) program.
 This is an online exam you can complete to demonstrate your skills in NVDA.
@@ -474,7 +480,10 @@ This includes disabling usage of the [Add-on Store](#AddonsManager).
 Portable and temporary copies of NVDA have the following restrictions:
 
 * The inability to automatically start during and/or after log-on.
-* The inability to interact with applications running with administrative privileges, unless of course NVDA itself has been run also with these privileges (not recommended).
+* The inability to interact with applications running with administrative privileges, unless of course NVDA itself has been run also with these privileges (not recommended). Examples include:
+  * Command Prompt and PowerShell running in admin mode
+  * Task Manager
+  * Windows 11 Voice Access
 * The inability to read User Account Control (UAC) screens when trying to start an application with administrative privileges.
 * The inability to support input from a touchscreen.
 * The inability to provide features such as browse mode and speaking of typed characters in Windows Store apps.
@@ -1131,7 +1140,13 @@ A key command is provided to return to the original page containing the embedded
 
 By default when selecting text with the `shift+arrow` keys in Browse Mode, a selection is only made within NVDA's Browse Mode representation of the document, and not within the application itself.
 This means that the selection is not visible on screen, and copying text with `control+c` will only copy NVDA's plain text representation of the content. i.e. formatting of tables, or whether something is a link will not be copied.
-However, NVDA has a Native Selection Mode which can be turned on in particular Browse Mode documents which can support it (Mozilla Firefox, and any browser based on Chromium 134 or newer) which causes the document's native selection to follow NVDA's Browse Mode selection.
+However, NVDA has a Native Selection Mode which can be turned on in particular Browse Mode documents which can support it.
+Native Selection causes the document's native selection to follow NVDA's Browse Mode selection, which enables details such as formatting, links, and tables to be copied.
+Currently, Native Selection Mode is supported in:
+
+* Mozilla Firefox
+* Mozilla Thunderbird
+* Chrome, Edge, and any browser based on Chromium 134 or newer
 
 <!-- KC:beginInclude -->
 
@@ -1911,6 +1926,22 @@ This option is a slider which goes from 0 to 100 - 0 being the lowest volume and
 
 This option is a slider that lets you choose how much inflection (rise and fall in pitch) the synthesizer should use to speak with.
 
+##### Use modern audio output system (WASAPI) {#SpeechSettingsUseWasapi}
+
+This option enables audio output via the Windows Audio Session API (WASAPI).
+This option only exists for Microsoft Speech API version 5 (SAPI 5) voices.
+This may improve the responsiveness of some SAPI 5 voices.
+However, some voices might not work with the current WASAPI implementation.
+If you find that the voice you are using stops working, you may disable this option.
+
+Note that the following features depend on WASAPI, and will be disabled if WASAPI is turned off:
+
+* Rate boost
+* Leading silence trimming
+* Keep audio device awake
+
+Note that in Advanced settings, there is a similar [option for SAPI 4 voices](#UseWASAPIForSAPI4), not to be confused with this one.
+
 ##### Automatic Language switching {#SpeechSettingsLanguageSwitching}
 
 This checkbox allows you to toggle whether NVDA should switch speech synthesizer languages automatically if the text being read specifies its language.
@@ -1921,6 +1952,22 @@ This option is enabled by default.
 This checkbox allows you to toggle whether or not dialect changes should be made, rather than just actual language changes.
 For example, if reading in an English U.S. voice but a document specifies that some text is in English U.K., then the synthesizer will switch accents if this option is enabled.
 This option is disabled by default.
+
+##### Report language changes while reading {#ReportLanguage}
+
+This checkbox allows you to toggle whether NVDA should report the detected language of the text being read, when the language changes from the default language.
+The language configured to be used by default won't be reported.
+This option is disabled by default.
+
+##### Report when switching to language is not supported by synthesizer {#ReportIfLanguageIsNotSupportedBySynthesizer}
+
+This combo box is used to set how NVDA should report if the language of the text being read is not supported by the current synthesizer.
+If [Automatic Language switching](#SpeechSettingsLanguageSwitching) is disabled, this option won't take effect, and the combo box will be readonly.
+
+| . {.hideHeaderRow} |.|
+|---|---|
+|Options |Speech, Beep, Off|
+|Default |Speech|
 
 <!-- KC:setting -->
 
@@ -3277,7 +3324,7 @@ This setting contains the following values:
 
 * Default (where suitable)
 * Only where necessary: where the Microsoft Word object model is not available at all
-* Where suitable: Microsoft Word version 16.0.15000 or higher, or where the Microsoft Word object model is unavailable
+* Where suitable: Microsoft Word version 16.0.15000 or higher on Windows 11, or where the Microsoft Word object model is unavailable
 * Always: where ever UI automation is available in Microsoft word (no matter how complete).
 
 ##### Use UI automation to access Microsoft Excel spreadsheet controls when available {#UseUiaForExcel}
@@ -3427,6 +3474,8 @@ This option enables Microsoft Speech API version 4 (SAPI 4) voices to output aud
 This can allow SAPI 4 voices to work with more features, such as audio ducking, leading silence trimming, and keeping audio device awake.
 However, some SAPI 4 voices might not work with the current WASAPI implementation.
 If you find that the SAPI 4 voice you are using stops working, you may disable this option.
+
+Note that in Speech settings, there is a similar [option for SAPI 5 voices](#SpeechSettingsUseWasapi), not to be confused with this one.
 
 | . {.hideHeaderRow} |.|
 |---|---|
@@ -4171,6 +4220,7 @@ The following displays support this automatic detection functionality.
 * Nattiq nBraille displays
 * Seika Notetaker: MiniSeika (16, 24 cells), V6, and V6Pro (40 cells)
 * Tivomatic Caiku Albatross 46/80 displays
+* NLS eReader Zoomax
 * Any Display that supports the Standard HID Braille protocol
 
 ### Freedom Scientific Focus/PAC Mate Series {#FreedomScientificFocus}
@@ -4483,8 +4533,7 @@ The following extra devices are also supported (and do not require any special d
 * APH Mantis Q40
 * APH Chameleon 20
 * Humanware BrailleOne
-* NLS eReader
-  * Note that the Zoomax is currently not supported without external drivers
+* NLS eReader HumanWare
 
 Following are the key assignments for the Brailliant BI/B and BrailleNote touch displays with NVDA.
 Please see the display's documentation for descriptions of where these keys can be found.
@@ -5347,6 +5396,34 @@ Please see the display's documentation for descriptions of where these keys can 
 
 <!-- KC:endInclude -->
 
+### NLS eReader Zoomax {#Zoomax}
+
+The NLS eReader Zoomax device supports USB or bluetooth connections.
+The Windows 10 and Windows 11 operating systems will automatically detect and install the necessary drivers for this display.
+For computers where the Internet connection is disabled or not available, you can manually [download and install the USB to serial CH340 chip driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html) to support this display over USB.
+
+By default, NVDA can automatically detect and connect to this display via USB or bluetooth.
+However, when configuring the display, you can also explicitly select "USB" or "Bluetooth" ports to restrict the connection type to be used.
+
+Following are the key assignments for this display with NVDA.
+Please see the display's documentation for descriptions of where these keys can be found.
+<!-- KC:beginInclude -->
+
+| Name |Key|
+|---|---|
+|Scroll braille display back |`d2`|
+|Scroll braille display forward |`d5`|
+|Move braille display to previous line |`d1`|
+|Move braille display to next line |`d3`|
+|Route to braille cell |`routing`|
+|Up arrow key |`up`|
+|Down arrow key |`down`|
+|Left arrow key |`left`|
+|Right arrow key |`right`|
+|Enter key |`select`|
+
+<!-- KC:endInclude -->
+
 ### Standard HID Braille displays {#HIDBraille}
 
 This is an experimental driver for the new Standard HID Braille Specification, agreed upon in 2018 by Microsoft, Google, Apple and several assistive technology companies including NV Access.
@@ -5390,8 +5467,11 @@ You can configure whether NVDA displays braille on the dedicated braille display
 
 Panning keys are supported, but due to limited buttons on the device, other commands and routing capabilities are currently not available.
 
-When selecting the Dot Pad driver in NVDA, you must manually select the USB / Bluetooth virtual serial port the Dot Pad is connected to.
-This driver does not support auto detection.
+The Dot Pad driver supports automatic detection of USB-connected devices.
+However, automatic detection is disabled by default due to the device using generic USB identifiers that could conflict with other devices.
+To enable automatic detection, go to NVDA's Braille settings and check "Dot Pad" in the automatic detection list.
+When automatic detection is enabled and a compatible device is detected, NVDA will automatically connect to it.
+You can also manually select a specific USB or Bluetooth virtual serial port if needed.
 
 Please note that due to hardware limitations, the Dot Pad will not refresh all dots correctly while your hand is on the device.
 Make sure to lift your hand entirely off the device when navigating with NVDA, and only start reading again once it has fully updated.
@@ -5510,9 +5590,18 @@ Following are the command line options for NVDA:
 |None |`--create-portable-silent` |Creates a portable copy of NVDA (without starting the new copy). Requires `--portable-path` to be specified. This option suppresses warnings when writing to non-empty directories and may overwrite files without warning.|
 |None |`--portable-path=PORTABLEPATH` |The path where a portable copy will be created|
 
-Just as you can silently install NVDA by passing the `--install-silent` command line option to NVDA, it can be silently uninstalled by passing the `/S` command to the uninstaller.
+### Uninstalling NVDA {#UninstallingNVDA}
 
 NVDA's uninstaller is called `uninstall.exe` and resides under the NVDA installation directory, `%ProgramFiles(x86)%\nvda` on 64-bit Windows, or `%ProgramFiles%\nvda` on 32-bit Windows.
+
+
+Note: It is possible to stop NVDA from starting automatically without needing to uninstall NVDA.
+To stop NVDA starting automatically, please refer to the options: [Start NVDA after I sign in](#GeneralSettingsStartAfterLogOn) and [Use NVDA during sign-in](#GeneralSettingsStartOnLogOnScreen) in NVDA's general settings.
+
+Just as you can silently install NVDA by passing the `--install-silent` command line option to NVDA, it can be silently uninstalled by passing the `/S` command to the uninstaller.
+
+Installed copies of NVDA store their configuration including add-ons in `%APPDATA%\nvda`.
+These files are not removed by NVDA's uninstaller.
 
 The following are the command line options for NVDA's uninstaller:
 
