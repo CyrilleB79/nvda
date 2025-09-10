@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2006-2024 NV Access Limited, Leonard de Ruijter, Cyrille Bougot
+# Copyright (C) 2006-2025 NV Access Limited, Leonard de Ruijter, Cyrille Bougot
 
 """
 Commands that can be embedded in a speech sequence for changing synth parameters, playing sounds or running

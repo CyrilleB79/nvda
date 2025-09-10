@@ -613,7 +613,7 @@ class NewProfileDialog(
 						"Once you have finished editing, you will need to manually deactivate it to resume normal usage.\n"
 						"Do you wish to manually activate it now?",
 					),
-					
+					# Translators: The title of the confirmation dialog for manual activation of a created profile.
 					_("Manual Activation"),
 					wx.YES | wx.NO | wx.ICON_QUESTION,
 					self,
