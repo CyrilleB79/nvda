@@ -6,12 +6,12 @@
 
 from collections.abc import Callable
 import os
-import ctypes
 import warnings
 import wx
 import wx.adv
 import wx.lib.agw.persist
 
+import winBindings.kernel32
 import globalVars
 import tones
 import ui
@@ -56,6 +56,7 @@ from .settingsDialogs import (
 	GeneralSettingsPanel,
 	InputCompositionPanel,
 	KeyboardSettingsPanel,
+	LocalCaptionerSettingsPanel,
 	MouseSettingsPanel,
 	MultiCategorySettingsDialog,
 	NVDASettingsDialog,
@@ -382,6 +383,10 @@ class MainFrame(wx.Frame):
 	@blockAction.when(blockAction.Context.SECURE_MODE)
 	def onRemoteAccessSettingsCommand(self, evt):
 		self.popupSettingsDialog(NVDASettingsDialog, RemoteSettingsPanel)
+
+	@blockAction.when(blockAction.Context.SECURE_MODE)
+	def onLocalCaptionerSettingsCommand(self, evt):
+		self.popupSettingsDialog(NVDASettingsDialog, LocalCaptionerSettingsPanel)
 
 	@blockAction.when(blockAction.Context.SECURE_MODE)
 	def onAdvancedSettingsCommand(self, evt: wx.CommandEvent):
@@ -991,7 +996,7 @@ def shouldConfigProfileTriggersBeSuspended():
 	Top-level windows that require this behavior should have a C{shouldSuspendConfigProfileTriggers} attribute set to C{True}.
 	Because these dialogs are often opened via the NVDA menu, this applies to the NVDA menu as well.
 	"""
-	if winUser.getGUIThreadInfo(ctypes.windll.kernel32.GetCurrentThreadId()).flags & 0x00000010:
+	if winUser.getGUIThreadInfo(winBindings.kernel32.GetCurrentThreadId()).flags & 0x00000010:
 		# The NVDA menu is active.
 		return True
 	for window in wx.GetTopLevelWindows():
