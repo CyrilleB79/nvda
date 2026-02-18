@@ -132,8 +132,6 @@ class HighlightWindow(CustomWindow):
 		)
 		self.location = None
 		self.highlighterRef = weakref.ref(highlighter)
-		import globalVars as gv
-		gv.dbg = self.highlighterRef 
 		winUser.SetLayeredWindowAttributes(
 			self.handle,
 			self.transparentColor,
@@ -171,16 +169,9 @@ class HighlightWindow(CustomWindow):
 			# The highlighter instance died unexpectedly, kill the window as well
 			winUser.user32.PostQuitMessage(0)
 			return
-		import globalVars as gv
-		try:
-			gv.dbg
-		except AttributeError:
-			gv.dbg = highlighter
 		contextRects = {}
-		log.info(f"zzz {highlighter.enabledContexts=}")
 		for context in highlighter.enabledContexts:
 			rect = highlighter.contextToRectMap.get(context)
-			log.info(f"zzz {context=}; {rect=}")
 			if not rect:
 				continue
 			elif context == Context.NAVIGATOR and contextRects.get(Context.FOCUS) == rect:
@@ -192,7 +183,6 @@ class HighlightWindow(CustomWindow):
 				contextRects.pop(Context.NAVIGATOR, None)
 				context = Context.FOCUS_NAVIGATOR
 			contextRects[context] = rect
-		log.info(f"zzz {contextRects=}")
 		if not contextRects:
 			return
 		with winUser.paint(self.handle) as hdc:
@@ -278,9 +268,7 @@ class NVDAHighlighterGuiPanel(
 		providerControl: VisionProviderStateControl,
 	):
 		self._providerControl = providerControl
-		log.info(f"zzz {providerControl=}")
 		initiallyEnabledInConfig = NVDAHighlighter.isEnabledInConfig()
-		log.info(f"zzz {initiallyEnabledInConfig=}")
 		if not initiallyEnabledInConfig:
 			settingsStorage = self._getSettingsStorage()
 			settingsToCheck = [
@@ -344,15 +332,11 @@ class NVDAHighlighterGuiPanel(
 
 	def _updateEnabledState(self):
 		settingsStorage = self._getSettingsStorage()
-		import globalVars as gv
-		gv.dbg = self._getSettingsStorage
-		log.info(f"zzz {self._getSettingsStorage()=}")
 		settingsToTriggerActivation = [
 			settingsStorage.highlightBrowseMode,
 			settingsStorage.highlightFocus,
 			settingsStorage.highlightNavigator,
 		]
-		log.info(f"zzz {settingsToTriggerActivation=}")
 		isAnyEnabled = any(settingsToTriggerActivation)
 		if all(settingsToTriggerActivation):
 			self._enabledCheckbox.Set3StateValue(wx.CHK_CHECKED)
@@ -382,8 +366,6 @@ class NVDAHighlighterGuiPanel(
 		return True
 
 	def _onCheckEvent(self, evt: wx.CommandEvent):
-		import globalVars as gv
-		gv.dbgSS = self
 		settingsStorage = self._getSettingsStorage()
 		if evt.GetEventObject() is self._enabledCheckbox:
 			isEnableAllChecked = evt.IsChecked()
@@ -428,9 +410,6 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 
 	@classmethod  # override
 	def canStart(cls) -> bool:
-		log.info("zzz", stack_info=True)
-		import ui
-		ui.message("zzz can start")
 		return True
 
 	def registerEventExtensionPoints(  # override
