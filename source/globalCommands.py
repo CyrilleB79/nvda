@@ -4837,6 +4837,7 @@ class GlobalCommands(ScriptableObject):
 		category=SCRCAT_VISION,
 	)
 	def script_toggleVisualHighlighter(self, gesture: inputCore.InputGesture) -> None:
+		import vision
 		from visionEnhancementProviders.NVDAHighlighter import NVDAHighlighter
 		nvdaHighlighterId = NVDAHighlighter.getSettings().getId()
 		nvdaHighlighterInfo = vision.handler.getProviderInfo(nvdaHighlighterId)
@@ -4874,12 +4875,9 @@ class GlobalCommands(ScriptableObject):
 				# nvdaHighlighterInfo.providerClass.enableInConfig(True)
 				providerInst = vision.handler.getProviderInstance(nvdaHighlighterInfo)
 				settings = providerInst.getSettings()
-				#zzz (tried here but does not fix the problem.) settings.loadSettings()
 				settings.highlightBrowseMode = True
 				settings.highlightFocus = True
 				settings.highlightNavigator = True
-				import globalVars as gv
-				gv.dbgSett = settings
 				settings.saveSettings()
 			except Exception:
 				log.error("Visual Highlighter initialization error", exc_info=True)
