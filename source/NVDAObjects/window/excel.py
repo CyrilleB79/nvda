@@ -1140,6 +1140,7 @@ class ExcelWorksheet(ExcelBase):
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=objGetter,
+			changeActiveCell=True,
 		)
 
 	@scriptHandler.script(
@@ -1191,15 +1192,20 @@ class ExcelWorksheet(ExcelBase):
 		canPropagate=True,
 	)
 	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
+		changeActiveCell = "shift" not in gesture.modifiers
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
+			reportSelection=True,
+			changeActiveCell=changeActiveCell,
 		)
 
 	def changeSelectionOrActiveCell(
 		self,
 		gesture: inputCore.InputGesture,
 		objGetter: Callable[[], ExcelCell | ExcelSelection | OfficeChart],
+		reportSelection=False,
+		changeActiveCell=True,
 	):
 		oldSelection = objGetter()
 		gesture.send()
@@ -1243,7 +1249,10 @@ class ExcelWorksheet(ExcelBase):
 				# Therefore we set newSelection.parent to self in order for the format field speech cache
 				# to persist across selection changes. (#15091)
 				newSelection.parent = self
-			eventHandler.executeEvent("gainFocus", newSelection)
+			if reportSelection:
+				zzz_reportSelection
+			if changeActiveCell:
+				eventHandler.executeEvent("gainFocus", newSelection)
 
 	def _WaitForValueChangeForAction(self, action, fetcher, timeout=0.15):
 		oldVal = fetcher()
