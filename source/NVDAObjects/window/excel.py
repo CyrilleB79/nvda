@@ -1193,10 +1193,13 @@ class ExcelWorksheet(ExcelBase):
 	)
 	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
 		changeActiveCell = "shift" not in gesture.modifiers
+		reportSelection = "shift" in gesture.modifiers
+		import globalVars as gv
+		gv.dbg = gesture
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
-			reportSelection=True,
+			reportSelection=reportSelection,
 			changeActiveCell=changeActiveCell,
 		)
 
@@ -1250,7 +1253,7 @@ class ExcelWorksheet(ExcelBase):
 				# to persist across selection changes. (#15091)
 				newSelection.parent = self
 			if reportSelection:
-				zzz_reportSelection
+				self._getSelection().reportFocus()
 			if changeActiveCell:
 				eventHandler.executeEvent("gainFocus", newSelection)
 
