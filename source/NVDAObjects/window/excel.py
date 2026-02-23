@@ -1145,18 +1145,6 @@ class ExcelWorksheet(ExcelBase):
 
 	@scriptHandler.script(
 		gestures=(
-			"kb:upArrow",
-			"kb:downArrow",
-			"kb:leftArrow",
-			"kb:rightArrow",
-			"kb:control+upArrow",
-			"kb:control+downArrow",
-			"kb:control+leftArrow",
-			"kb:control+rightArrow",
-			"kb:home",
-			"kb:end",
-			"kb:control+home",
-			"kb:control+end",
 			"kb:shift+upArrow",
 			"kb:shift+downArrow",
 			"kb:shift+leftArrow",
@@ -1171,18 +1159,43 @@ class ExcelWorksheet(ExcelBase):
 			"kb:shift+control+end",
 			"kb:shift+space",
 			"kb:control+space",
-			"kb:pageUp",
-			"kb:pageDown",
 			"kb:shift+pageUp",
 			"kb:shift+pageDown",
-			"kb:alt+pageUp",
-			"kb:alt+pageDown",
 			"kb:alt+shift+pageUp",
 			"kb:alt+shift+pageDown",
 			"kb:control+shift+8",
+			"kb:control+a",
+		),
+		canPropagate=True,
+	)
+	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
+		self.changeSelectionOrActiveCell(
+			gesture=gesture,
+			objGetter=self._getSelection,
+			reportSelection=True,
+			changeActiveCell=False,
+		)
+	
+	@scriptHandler.script(
+		gestures=(
+			"kb:upArrow",
+			"kb:downArrow",
+			"kb:leftArrow",
+			"kb:rightArrow",
+			"kb:control+upArrow",
+			"kb:control+downArrow",
+			"kb:control+leftArrow",
+			"kb:control+rightArrow",
+			"kb:home",
+			"kb:end",
+			"kb:control+home",
+			"kb:control+end",
+			"kb:pageUp",
+			"kb:pageDown",
+			"kb:alt+pageUp",
+			"kb:alt+pageDown",
 			"kb:control+pageUp",
 			"kb:control+pageDown",
-			"kb:control+a",
 			"kb:control+v",
 			"kb:shift+f11",
 			"kb:control+y",
@@ -1191,14 +1204,12 @@ class ExcelWorksheet(ExcelBase):
 		),
 		canPropagate=True,
 	)
-	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
-		changeActiveCell = "shift" not in gesture.modifierNames
-		reportSelection = "shift" in gesture.modifierNames
+	def script_changeSelectionAndActiveCell(self, gesture: inputCore.InputGesture) -> None:
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
-			reportSelection=reportSelection,
-			changeActiveCell=changeActiveCell,
+			reportSelection=False,
+			changeActiveCell=True,
 		)
 
 	def changeSelectionOrActiveCell(
