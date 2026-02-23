@@ -1192,10 +1192,8 @@ class ExcelWorksheet(ExcelBase):
 		canPropagate=True,
 	)
 	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
-		changeActiveCell = "shift" not in gesture.modifiers
-		reportSelection = "shift" in gesture.modifiers
-		import globalVars as gv
-		gv.dbg = gesture
+		changeActiveCell = "shift" not in gesture.modifierNames
+		reportSelection = "shift" in gesture.modifierNames
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
