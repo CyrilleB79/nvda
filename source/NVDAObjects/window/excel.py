@@ -1132,6 +1132,8 @@ class ExcelWorksheet(ExcelBase):
 		canPropagate=True,
 	)
 	def script_changeActiveCell(self, gesture: inputCore.InputGesture) -> None:
+		# Script for Excel commands which move the active cell keeping the existing selection range (if any).
+
 		isChartActive = True if self.excelWindowObject.ActiveChart else False
 		if isChartActive:
 			objGetter = self._getSelection
@@ -1154,7 +1156,6 @@ class ExcelWorksheet(ExcelBase):
 			"kb:shift+control+leftArrow",
 			"kb:shift+control+rightArrow",
 			"kb:shift+home",
-			"kb:shift+end",
 			"kb:shift+control+home",
 			"kb:shift+control+end",
 			"kb:shift+space",
@@ -1165,10 +1166,16 @@ class ExcelWorksheet(ExcelBase):
 			"kb:alt+shift+pageDown",
 			"kb:control+shift+8",
 			"kb:control+a",
+			"kb:control+v",
+			"kb:control+y",
+			"kb:control+z",
+			"kb:alt+backspace",
 		),
 		canPropagate=True,
 	)
 	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
+		# Script for Excel commands which modify the selection range.
+
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
@@ -1187,7 +1194,6 @@ class ExcelWorksheet(ExcelBase):
 			"kb:control+leftArrow",
 			"kb:control+rightArrow",
 			"kb:home",
-			"kb:end",
 			"kb:control+home",
 			"kb:control+end",
 			"kb:pageUp",
@@ -1196,15 +1202,13 @@ class ExcelWorksheet(ExcelBase):
 			"kb:alt+pageDown",
 			"kb:control+pageUp",
 			"kb:control+pageDown",
-			"kb:control+v",
 			"kb:shift+f11",
-			"kb:control+y",
-			"kb:control+z",
-			"kb:alt+backspace",
 		),
 		canPropagate=True,
 	)
 	def script_changeSelectionAndActiveCell(self, gesture: inputCore.InputGesture) -> None:
+		# Script for Excel commands which move the active cell and unselect what was previously selected (if any)
+
 		self.changeSelectionOrActiveCell(
 			gesture=gesture,
 			objGetter=self._getSelection,
