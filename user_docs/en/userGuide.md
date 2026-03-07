@@ -1539,6 +1539,14 @@ Once the magnifier is enabled, you can use the following keyboard commands to co
 |Toggle filter of the magnifier |`NVDA+shift+i` |Cycles through available color filters (normal, grayscale, inverted)|
 |Toggle focus mode for the full-screen magnifier |None |Cycles through focus tracking modes (center, border, relative)|
 |Launch spotlight if magnifier is full-screen |`NVDA+shift+l` |Activates spotlight mode for focused reading or presentations|
+|Pan left |`NVDA+alt+leftArrow` |Pan the magnified view to the left by the specified panning step size|
+|Pan right |`NVDA+alt+rightArrow` |Pan the magnified view to the right by the specified panning step size|
+|Pan up |`NVDA+alt+upArrow` |Pan the magnified view upwards by the specified panning step size|
+|Pan down |`NVDA+alt+downArrow` |Pan the magnified view downwards by the specified panning step size|
+|Pan to left edge |`NVDA+shift+alt+leftArrow` |Pan the magnified view directly to the left edge of the screen|
+|Pan to right edge |`NVDA+shift+alt+rightArrow` |Pan the magnified view directly to the right edge of the screen|
+|Pan to top edge |`NVDA+shift+alt+upArrow` |Pan the magnified view directly to the top edge of the screen|
+|Pan to bottom edge |`NVDA+shift+alt+downArrow` |Pan the magnified view directly to the bottom edge of the screen|
 
 <!-- KC:endInclude -->
 
@@ -1564,12 +1572,14 @@ NVDA will announce the name of the currently selected filter.
 
 The default color filter when the magnifier is first enabled can be configured in the [Magnifier settings](#MagnifierSettings).
 
-### Focus Tracking Modes {#MagnifierFocusModes}
+### Focus Tracking Modes {#MagnifierFullscreenFocusModes}
 
 The magnifier offers three different modes for tracking focus and determining which part of the screen to magnify:
 
-* **Center**: The magnified area is always centered on the current focus position.
-This mode keeps the focused element at the center of the screen at all times.
+* **Center**: The magnified area is centered on the current focus position.
+This mode keeps the focused element at the center of the screen and clamps to the screen edge.
+To disable clamping, activate [true center mode in the Magnifier settings](#MagnifierUseTrueCenter).
+
 * **Border**: The magnified area only moves when the focus approaches the edge of the visible area.
 This mode provides a more stable view, only adjusting when necessary.
 * **Relative**: The magnified area maintains the relative position of the focus within the screen.
@@ -2820,7 +2830,7 @@ The available options are:
 | Grayscale | Converts all colors to shades of gray, which can help reduce eye strain and improve contrast. |
 | Inverted | Inverts all colors on the screen, which can be helpful for users who prefer light text on dark backgrounds or have photophobia. |
 
-##### Default focus mode {#MagnifierDefaultFocusMode}
+##### Default focus mode {#MagnifierDefaultFullscreenFocusMode}
 
 This combo box allows you to select the default focus tracking mode when the magnifier is first enabled.
 To cycle through the focus tracking modes, please assign a custom gesture using the [Input Gestures dialog](#InputGestures).
@@ -2837,6 +2847,36 @@ The available options are:
 | Center | The magnified area is always centered on the current focus position. |
 | Border | The magnified area only moves when the focus approaches the edge of the visible area. |
 | Relative | The magnified area maintains the relative position of the focus within the screen. |
+
+##### Panning step size {#MagnifierPanningStepSize}
+
+This slider allows you to set the panning step size as a percentage of the visible magnified window.
+The panning step size can range from 1% to 100%, with a default value of 10%.
+This means that when you use manual pan commands, the magnified view will move by the specified percentage of the current visible window size.
+
+For example, if your visible magnified window is 200 pixels wide and you have a panning step size of 10%, each pan command will move the view by 20 pixels.
+Higher percentages cause larger movements, making it faster to navigate across the screen, while lower percentages provide finer control for precise positioning.
+The actual pixel distance will automatically adjust based on your current zoom level.
+
+Note: Pan commands allow you to manually move the magnified view in any direction, independent of the focus tracking mode.
+Available pan actions include:
+
+| . {.hideHeaderRow} |.|
+|---|---|
+|Options |1 to 100|
+|Default |10|
+
+##### Use true center {#MagnifierUseTrueCenter}
+
+This checkbox controls whether the magnifier should always keep the focus centered on the screen, or if it should allow the focus to move towards the edges of the screen before moving the magnified area.
+When enabled, the magnifier will always keep the focus centered on the screen, which can be helpful for users who prefer a consistent position of the focus within the magnified view.
+
+This option is disabled by default.
+
+| . {.hideHeaderRow} |.|
+|---|---|
+|Options |Disabled, Enabled|
+|Default |Disabled|
 
 ##### Keep mouse centered {#MagnifierKeepMouseCentered}
 
@@ -3500,6 +3540,15 @@ Whether to speak the expression after moving to it or give an overview.
 |---|---|
 | Options | Speak, Describe overview |
 | Default | Speak |
+
+###### Use native math speech in Word and Outlook {#MathUseWordNative}
+
+When enabled, NVDA uses Microsoft Word's built-in math presentation (speech, braille, and interaction) instead of MathCAT when reading and interacting with equations in Word documents.
+
+| . {.hideHeaderRow} | . |
+|---|---|
+| Options | Checked, Unchecked |
+| Default | Unchecked |
 
 ##### Navigation Options {#MathNavigation}
 
