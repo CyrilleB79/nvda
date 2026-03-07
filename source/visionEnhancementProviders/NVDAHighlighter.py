@@ -12,6 +12,7 @@ from ctypes.wintypes import MSG, RECT
 from typing import TYPE_CHECKING, NamedTuple, override
 
 import api
+import config
 import core
 import vision
 import winBindings.gdi32
@@ -504,6 +505,16 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 	@classmethod
 	def canStart(cls) -> bool:
 		return True
+
+	@classmethod
+	def enableInConfig(cls, enable: bool) -> None:
+		"""Enables or disables the provider in the current configuration.
+		@param enable: Whether to enable (C{True}) or disable (C{False}) the provider in the configuration.
+		"""
+		super().enableInConfig(enable)
+		settings = cls.getSettings()
+		for context in _supportedContexts:
+			config.conf[settings._getConfigSection()][settings.getId()][f"highlight{context[0].upper() + context[1:]}"] = enable
 
 	@override
 	def registerEventExtensionPoints(
