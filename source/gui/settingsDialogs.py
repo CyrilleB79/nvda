@@ -5666,7 +5666,7 @@ class VisionProviderStateControl(vision.providerBase.VisionProviderStateControl)
 		@return True on successful termination.
 		"""
 		try:
-			vision.handler.initializeProvider(self._providerInfo)
+			vision.handler.initializeProvider(self._providerInfo, temporary=True)
 			return True
 		except Exception:
 			log.error(
