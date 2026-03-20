@@ -1,7 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2018-2025 NV Access Limited, Babbage B.V., Takuya Nishimoto, hwf1324
+# Copyright (C) 2018-2026 NV Access Limited, Babbage B.V., Takuya Nishimoto, hwf1324, Cyrille Bougot
 
 """Default highlighter based on GDI Plus."""
 
@@ -19,7 +19,10 @@ import winGDI
 import winUser
 import wx
 from autoSettingsUtils.autoSettings import SupportedSettingType
-from autoSettingsUtils.driverSetting import BooleanDriverSetting
+from autoSettingsUtils.driverSetting import (
+	BooleanDriverSetting,
+	StringDriverSetting,
+)
 from colors import RGB
 from gui.settingsDialogs import (
 	AutoSettingsMixin,
@@ -231,15 +234,15 @@ class HighlightWindow(CustomWindow):
 		with winUser.paint(self.handle) as hdc:
 			with winGDI.GDIPlusGraphicsContext(hdc) as graphicsContext:
 				for context, rect in contextRects.items():
-					HighlightStyle = highlighter._ContextStyles[context]
-					rect = self._mapRectToClient(rect, HighlightStyle)
+					style = highlighter._ContextStyles[context]
+					rect = self._mapRectToClient(rect, style)
 					if not rect:
 						continue
 
 					with winGDI.GDIPlusPen(
-						HighlightStyle.color.toGDIPlusARGB(),
-						HighlightStyle.width,
-						HighlightStyle.style,
+						style.color.toGDIPlusARGB(),
+						style.width,
+						style.style,
 					) as pen:
 						winGDI.gdiPlusDrawRectangle(graphicsContext, pen, *rect.toLTWH())
 
@@ -332,14 +335,23 @@ class NVDAHighlighterSettings(providerBase.VisionEnhancementProviderSettings):
 
 	@override
 	def _get_supportedSettings(self) -> SupportedSettingType:
-		return [
-			BooleanDriverSetting(
-				"highlight%s" % (context[0].upper() + context[1:]),
-				_contextOptionLabelsWithAccelerators[context],
-				defaultVal=True,
+		settings = []
+		for context in _supportedContexts:
+			settings.append(
+				BooleanDriverSetting(
+					"highlight%s" % (context[0].upper() + context[1:]),
+					_contextOptionLabelsWithAccelerators[context],
+					defaultVal=True,
+				)
+			settings.append(
+				StringDriverSetting(
+					"highlight%sColor" % (context[0].upper() + context[1:]),
+					# zzz
+					_("Color"),
+					defaultVal=hex(NVDAHighlighter._ContextStyles[context].color.toGDIPlusARGB()),
+				)
 			)
-			for context in _supportedContexts
-		]
+		return settings
 
 
 class NVDAHighlighterGuiPanel(
@@ -518,6 +530,14 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 		super().__init__()
 		log.debug("Starting NVDAHighlighter")
 		self.contextToRectMap: dict[Context, RectLTRB | None] = {}
+		# Instance-level styles (copy of defaults, will allow runtime customization)
+		self._contextStyles = dict(self._ContextStyles)
+		self._contextStyles[Context.BROWSEMODE] = HighlightStyle(
+			color=RGB(0, 255, 0),
+			width=3,
+			style=winGDI.DashStyleSolid,
+			margin=2,
+		)
 		winGDI.gdiPlusInitialize()
 		self._highlighterThread = threading.Thread(
 			name=f"{self.__class__.__module__}.{self.__class__.__qualname__}",
@@ -611,6 +631,9 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 			for context in _supportedContexts
 			if getattr(self.getSettings(), "highlight%s" % (context[0].upper() + context[1:]))
 		)
+
+	def _getStyleForContext(self, context: Context) -> HighlightStyle:
+		return self._contextStyles.get(context, self._ContextStyles[context])
 
 
 VisionEnhancementProvider = NVDAHighlighter
