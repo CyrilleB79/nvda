@@ -21,7 +21,7 @@ import wx
 from autoSettingsUtils.autoSettings import SupportedSettingType
 from autoSettingsUtils.driverSetting import (
 	BooleanDriverSetting,
-	StringDriverSetting,
+	DriverSetting,
 )
 from colors import RGB
 from gui.settingsDialogs import (
@@ -75,6 +75,13 @@ DASH_BLUE = HighlightStyle(BLUE, 5, winGDI.DashStyleDash, 5)
 SOLID_PINK = HighlightStyle(PINK, 5, winGDI.DashStyleSolid, 5)
 SOLID_BLUE = HighlightStyle(BLUE, 5, winGDI.DashStyleSolid, 5)
 SOLID_YELLOW = HighlightStyle(YELLOW, 2, winGDI.DashStyleSolid, 2)
+
+_DefaultContextStyles = {
+	Context.FOCUS: DASH_BLUE,
+	Context.NAVIGATOR: SOLID_PINK,
+	Context.FOCUS_NAVIGATOR: SOLID_BLUE,
+	Context.BROWSEMODE: SOLID_YELLOW,
+}
 
 
 class HighlightWindow(CustomWindow):
@@ -234,7 +241,7 @@ class HighlightWindow(CustomWindow):
 		with winUser.paint(self.handle) as hdc:
 			with winGDI.GDIPlusGraphicsContext(hdc) as graphicsContext:
 				for context, rect in contextRects.items():
-					style = highlighter._ContextStyles[context]
+					style = highlighter._contextStyles[context]
 					rect = self._mapRectToClient(rect, style)
 					if not rect:
 						continue
@@ -286,7 +293,7 @@ class HighlightWindow(CustomWindow):
 
 			if prevRect != currRect:
 				rectsChanged = True
-				style = highlighter._ContextStyles[context]
+				style = highlighter._contextStyles[context]
 
 				# If there was a rect previously, invalidate its old position (to erase it)
 				if prevRect:
@@ -316,6 +323,43 @@ _contextOptionLabelsWithAccelerators = {
 _supportedContexts = (Context.FOCUS, Context.NAVIGATOR, Context.BROWSEMODE)
 
 
+def makeHighlightColorDriverSetting(context):
+	"""Factory function for creating a highlight color setting."""
+
+	class HighlightColorDriverSetting(DriverSetting):
+		
+		def __init__(self):
+			super().__init__(
+				f"highlight{context.value}color",
+				# Translators: Label for a setting in Visual Highlight settings panel.
+				_("Color"),
+				#zzz defaultVal=_DefaultContextStyles[context].color.toGDIPlusARGB(),
+				defaultVal="Blue zzz",
+			)
+
+		def getAvailableColors(self):
+			return (
+				"Blue zzz",
+				"Red zzz",
+				"Yellow zzz",
+			)
+
+		if context == "browseMode":
+			def _get_availableHighlightbrowsemodecolors(self):
+				return self.getAvailableColors()
+				
+		elif context == "focus":
+			def _get_availableHighlightfocuscolors(self):
+				return self.getAvailableColors()
+		elif context == "navigator":
+			def _get_availableHighlightnavigatorcolors(self):
+				return self.getAvailableColors()
+		else:
+			raise RuntimeError(f"Unexpected context: {context}")
+
+	return HighlightColorDriverSetting
+
+
 class NVDAHighlighterSettings(providerBase.VisionEnhancementProviderSettings):
 	# Default settings for parameters
 	highlightFocus = False
@@ -342,14 +386,10 @@ class NVDAHighlighterSettings(providerBase.VisionEnhancementProviderSettings):
 					"highlight%s" % (context[0].upper() + context[1:]),
 					_contextOptionLabelsWithAccelerators[context],
 					defaultVal=True,
-				)
+				),
+			)
 			settings.append(
-				StringDriverSetting(
-					"highlight%sColor" % (context[0].upper() + context[1:]),
-					# zzz
-					_("Color"),
-					defaultVal=hex(NVDAHighlighter._ContextStyles[context].color.toGDIPlusARGB()),
-				)
+				makeHighlightColorDriverSetting(context)(),
 			)
 		return settings
 
@@ -489,12 +529,6 @@ class NVDAHighlighterGuiPanel(
 
 
 class NVDAHighlighter(providerBase.VisionEnhancementProvider):
-	_ContextStyles = {
-		Context.FOCUS: DASH_BLUE,
-		Context.NAVIGATOR: SOLID_PINK,
-		Context.FOCUS_NAVIGATOR: SOLID_BLUE,
-		Context.BROWSEMODE: SOLID_YELLOW,
-	}
 	_refreshInterval = 100
 	customWindowClass = HighlightWindow
 	_settings = NVDAHighlighterSettings()
@@ -531,7 +565,8 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 		log.debug("Starting NVDAHighlighter")
 		self.contextToRectMap: dict[Context, RectLTRB | None] = {}
 		# Instance-level styles (copy of defaults, will allow runtime customization)
-		self._contextStyles = dict(self._ContextStyles)
+		self._contextStyles = dict(_DefaultContextStyles)
+		#zzz
 		self._contextStyles[Context.BROWSEMODE] = HighlightStyle(
 			color=RGB(0, 255, 0),
 			width=3,
