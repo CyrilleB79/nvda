@@ -1439,6 +1439,8 @@ class AutoSettingsMixin(metaclass=ABCMeta):
 		"""
 		labelText = f"{setting.displayNameWithAccelerator}:"
 		stringSettingAttribName = f"_{setting.id}s"
+		import globalVars as gv
+		gv.dbg = self.getSettings()
 		setattr(
 			self,
 			stringSettingAttribName,
