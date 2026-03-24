@@ -330,32 +330,25 @@ def makeHighlightColorDriverSetting(context):
 		
 		def __init__(self):
 			super().__init__(
-				f"highlight{context.value}color",
+				f"highlight{context.value.lower()}color",
 				# Translators: Label for a setting in Visual Highlight settings panel.
 				_("Color"),
 				#zzz defaultVal=_DefaultContextStyles[context].color.toGDIPlusARGB(),
 				defaultVal="Blue zzz",
 			)
 
-		def getAvailableColors(self):
-			return (
-				"Blue zzz",
-				"Red zzz",
-				"Yellow zzz",
-			)
+	def getAvailableColors(self):
+		return (
+			"Blue zzz",
+			"Red zzz",
+			"Yellow zzz",
+		)
 
-		if context == "browseMode":
-			def _get_availableHighlightbrowsemodecolors(self):
-				return self.getAvailableColors()
-				
-		elif context == "focus":
-			def _get_availableHighlightfocuscolors(self):
-				return self.getAvailableColors()
-		elif context == "navigator":
-			def _get_availableHighlightnavigatorcolors(self):
-				return self.getAvailableColors()
-		else:
-			raise RuntimeError(f"Unexpected context: {context}")
+	setattr(
+		HighlightColorDriverSetting,
+		f"_get_availableHighlight{context.value.lower()}colors",
+		getAvailableColors,
+	)
 
 	return HighlightColorDriverSetting
 
@@ -391,6 +384,8 @@ class NVDAHighlighterSettings(providerBase.VisionEnhancementProviderSettings):
 			settings.append(
 				makeHighlightColorDriverSetting(context)(),
 			)
+		import globalVars as gv
+		gv.dbgs = settings
 		return settings
 
 
