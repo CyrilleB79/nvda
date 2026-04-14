@@ -33,6 +33,7 @@ import baseObject
 import easeOfAccess
 from fileUtils import FaultTolerantFile
 import extensionPoints
+import functools
 
 from . import profileUpgrader
 from . import aggregatedSection
@@ -335,7 +336,23 @@ def setSystemConfigToCurrentConfig(*, addonsToCopy: Collection[str] = ()):
 			raise RuntimeError("Slave failure")
 
 
-def _setSystemConfig(fromPath: str, *, prefix: str = sys.prefix, addonsToCopy: Collection[str] = ()):
+def _setSystemConfig(
+	fromPath: str,
+	*,
+	prefix: str = sys.prefix,
+	addonsToCopy: Collection[str] = (),
+	isMigration: bool = False,
+):
+	"""
+	Sets the system config to that in ``fromPath``.
+
+	:param fromPath: Path to config directory to copy.
+	:param prefix: Directory in which to set the system config, defaults to :attr:`sys.prefix`.
+			The system config will be in a ``systemConfig`` subdirectory of this directory.
+	:param addonsToCopy: List of add-on IDs to include in the system configuration, defaults to `()`.
+	:param isMigration: Whether this is a migration from one system config location to another, defaults to ``False``.
+		When this is ``True``, the ``addons/`` directory and ``addonsState.pickle``/``addonsState.json`` in ``fromPath`` will be copied as-is, if they exist.
+	"""
 	import installer
 	import addonHandler
 
@@ -351,21 +368,26 @@ def _setSystemConfig(fromPath: str, *, prefix: str = sys.prefix, addonsToCopy: C
 			for subPath in removeSubs:
 				log.debug("Ignored folder that may contain unpackaged addons: %s", subPath)
 				subDirs.remove(subPath)
-			if addonHandler.stateFilename in files:
+			if not isMigration:
 				# Don't copy the addons state file,
 				# as we will generate a new one based on which add-ons are being copied.
-				files.remove(addonHandler.stateFilename)
+				# Just in case it still exists, also exclude the old one.
+				stateFilenames = (
+					addonHandler.STATE_FILENAME.casefold(),
+					addonHandler._OLD_STATE_FILENAME.casefold(),
+				)
+				files = [filename for filename in files if filename.casefold() not in stateFilenames]
 		else:
 			relativePath = os.path.relpath(curSourceDir, fromPath)
 			curDestDir = os.path.join(toPath, relativePath)
-			if relativePath == "addons":
+			if not isMigration and relativePath == "addons":
 				_prepareToCopyAddons(fromPath, toPath, subDirs, addonsToCopy)
 		if not os.path.isdir(curDestDir):
 			os.makedirs(curDestDir)
 		for f in files:
 			# Do not copy executables to the system configuration, as this may cause security risks.
 			# This will also exclude pending updates.
-			if f.endswith(".exe"):
+			if f.casefold().endswith(".exe"):
 				log.debug(
 					"Ignored file %s while copying current user configuration to system configuration" % f,
 				)
@@ -401,13 +423,13 @@ def _prepareToCopyAddons(fromPath: str, toPath: str, addonDirs: list[str], addon
 		# We are copying add-ons, so we need to generate a new addons state file.
 		# If no add-ons have their compatibility overridden, the file will not be saved, but this is fine.
 		userAddonsState = addonHandler.AddonsState()
-		userAddonsState._load(os.path.join(fromPath, addonHandler.stateFilename))
+		userAddonsState._load(os.path.join(fromPath, addonHandler.STATE_FILENAME))
 		systemAddonsState = addonHandler.AddonsState()
 		systemAddonsState.manualOverridesAPIVersion = userAddonsState.manualOverridesAPIVersion
 		systemAddonsState[AddonStateCategory.OVERRIDE_COMPATIBILITY] = (
 			userAddonsState[AddonStateCategory.OVERRIDE_COMPATIBILITY] & addonsToCopy
 		)
-		systemAddonsState._save(statePath=os.path.join(toPath, addonHandler.stateFilename))
+		systemAddonsState._save(statePath=os.path.join(toPath, addonHandler.STATE_FILENAME))
 	else:
 		log.debug("No add-ons to copy.")
 
@@ -1024,6 +1046,87 @@ class ConfigManager(object):
 		data.kwargs = parsedSpec[2]
 		data.default = conf.validator.get_default_value(spec)
 		return data
+
+	def getConfigValue(self, *keyPath: *tuple[str, str, *tuple[str, ...]]) -> any:
+		"""
+		Retrieves the value of a configuration key.
+		:param keyPath: The path to the configuration key to retrieve.
+		:return: The value of the specified configuration key.
+		"""
+		return functools.reduce(lambda d, x: d.get(x), keyPath, self)
+
+	def setConfigValue(
+		self,
+		value: bool | int | float | str,
+		*keyPath: *tuple[str, str, *tuple[str, ...]],
+	) -> None:
+		"""
+		Sets the value of a configuration key.
+		:param value: The value to set for the configuration key.
+		:param keyPath: The path to the configuration key to set.
+		:return: None.
+		"""
+		dictToUpdate = functools.reduce(lambda d, x: d.get(x), keyPath[:-1], self)
+		dictToUpdate[keyPath[-1]] = value
+
+	def _getConfigValueRange(self, *keyPath: tuple[str, str, *tuple[str, ...]]) -> tuple[float, float]:
+		"""
+		Gets the minimum and maximum allowed values for a configuration key.
+		:param keyPath: The path to The configuration key to evaluate.
+		:return: A tuple of (minValue, maxValue).
+		"""
+		validation = self.getConfigValidation(keyPath)
+		minValue = float(validation.kwargs["min"])
+		maxValue = float(validation.kwargs["max"])
+		return minValue, maxValue
+
+	def _clampValue(self, currentValue: float, minValue: float, maxValue: float, step: float) -> float:
+		"""
+		Calculates a new value by applying a step, constrained within min/max bounds.
+		:param currentValue: The current value.
+		:param minValue: The minimum allowed value.
+		:param maxValue: The maximum allowed value.
+		:param step: The amount to change the value by (positive or negative).
+		:return: The new value, clamped between min and max.
+		"""
+		return min(max(currentValue + step, minValue), maxValue)
+
+	def valueToPercentage(self, *keyPath: tuple[str, str, *tuple[str, ...]]) -> int:
+		"""
+		Calculates the percentage representation of a configuration value within its defined range.
+		:param keyPath: The path to the configuration key to evaluate.
+		:return: The percentage (0-100) of the value within the range.
+		"""
+		minValue, maxValue = self._getConfigValueRange(*keyPath)
+		currentValue = self.getConfigValue(*keyPath)
+		return round((currentValue - minValue) / (maxValue - minValue) * 100)
+
+	def percentageToValue(self, *keyPath: tuple[str, str, *tuple[str, ...]], percentage: int) -> float:
+		"""
+		Calculates the configuration value corresponding to a given percentage within its defined range.
+		:param keyPath: The path to the configuration key to evaluate.
+		:param percentage: The percentage (0-100) to convert to a value.
+		:return: The value corresponding to the given percentage within the defined range.
+		"""
+		minValue, maxValue = self._getConfigValueRange(*keyPath)
+		percentage = max(0, min(100, percentage))
+		value = minValue + (maxValue - minValue) * (percentage / 100)
+		return value
+
+	def clampedIncrementAndUpdateConfig(
+		self,
+		*keyPath: tuple[str, str, *tuple[str, ...]],
+		step: float,
+	) -> None:
+		"""
+		Updates a configuration value by applying a step, constrained within its valid range.
+		:param keyPath: The path to the configuration key to update.
+		:param step: The step adjustment value (positive, negative, or 0).
+		"""
+		currentValue = self.getConfigValue(*keyPath)
+		minValue, maxValue = self._getConfigValueRange(*keyPath)
+		newValue = self._clampValue(currentValue, minValue, maxValue, step)
+		self.setConfigValue(newValue, *keyPath)
 
 
 class ConfigValidationData(object):
