@@ -5298,7 +5298,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.startSpotlight()
+		_magnifier.commands.startOverview()
 
 	@script(
 		description=_(

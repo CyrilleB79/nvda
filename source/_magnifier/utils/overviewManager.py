@@ -4,8 +4,8 @@
 # For full terms and any additional permissions, see the NVDA license file: https://github.com/nvaccess/nvda/blob/master/copying.txt
 
 """
-Spotlight manager module for full-screen magnifier.
-Manages the spotlight effect, including zooming in on focus and zooming back.
+Overview manager module for full-screen magnifier.
+Manages the overview effect, including zooming in on focus and zooming back.
 """
 
 from typing import TYPE_CHECKING, Callable
@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 	from _magnifier.fullscreenMagnifier import FullScreenMagnifier
 
 
-class SpotlightManager:
+class OverviewManager:
 	def __init__(
 		self,
 		fullscreenMagnifier: "FullScreenMagnifier",
 	):
 		self._fullscreenMagnifier: "FullScreenMagnifier" = fullscreenMagnifier
-		self._spotlightIsActive: bool = False
+		self._overviewIsActive: bool = False
 		self._lastMousePosition = Coordinates(0, 0)
 		self._timer: wx.CallLater | None = None
 		self._animationSteps: int = 40
@@ -34,16 +34,16 @@ class SpotlightManager:
 		self._currentZoomLevel: float = 0.0
 		self._originalMode: FullScreenMode | None = None
 
-	def _startSpotlight(self) -> None:
+	def _startOverview(self) -> None:
 		"""
-		Start the spotlight
+		Start the overview
 		"""
 		self._originalZoomLevel = self._fullscreenMagnifier.zoomLevel
 		self._currentZoomLevel = self._fullscreenMagnifier.zoomLevel
 
-		log.debug("start spotlight")
+		log.debug("start overview")
 
-		self._spotlightIsActive = True
+		self._overviewIsActive = True
 
 		startCoords = self._fullscreenMagnifier._focusManager.getCurrentFocusCoordinates()
 		startCoords = self._fullscreenMagnifier._getCoordinatesForMode(startCoords)
@@ -57,11 +57,11 @@ class SpotlightManager:
 		self._currentCoordinates = startCoords
 		self._animateZoom(ZoomHistory(1.0, centerScreen), self._startMouseMonitoring)
 
-	def _stopSpotlight(self) -> None:
+	def _stopOverview(self) -> None:
 		"""
-		Stop the spotlight
+		Stop the overview
 		"""
-		log.debug("stop spotlight")
+		log.debug("stop overview")
 		ui.message(
 			pgettext(
 				"magnifier",
@@ -73,8 +73,8 @@ class SpotlightManager:
 			self._timer.Stop()
 			self._timer = None
 
-		self._spotlightIsActive = False
-		self._fullscreenMagnifier._stopSpotlight()
+		self._overviewIsActive = False
+		self._fullscreenMagnifier._stopOverview()
 
 	def _animateZoom(
 		self,
@@ -122,8 +122,8 @@ class SpotlightManager:
 				self._fullscreenMagnifier._setZoomRawValue(zoomLevel)
 				self._fullscreenMagnifier._fullscreenMagnifier(coords)
 			except Exception:
-				log.error("Error during spotlight animation step, aborting spotlight", exc_info=True)
-				self._stopSpotlight()
+				log.error("Error during overview animation step, aborting overview", exc_info=True)
+				self._stopOverview()
 				return
 			self._currentZoomLevel = zoomLevel
 			self._currentCoordinates = coords
@@ -171,7 +171,7 @@ class SpotlightManager:
 			endCoordinates = focus
 			self._fullscreenMagnifier._lastScreenPosition = endCoordinates
 
-		self._animateZoom(ZoomHistory(self._originalZoomLevel, endCoordinates), self._stopSpotlight)
+		self._animateZoom(ZoomHistory(self._originalZoomLevel, endCoordinates), self._stopOverview)
 
 	def _computeAnimationSteps(
 		self,

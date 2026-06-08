@@ -51,7 +51,7 @@ class MagnifierAction(DisplayStringEnum):
 	CHANGE_MAGNIFIER_VIEW = auto()
 	TOGGLE_FOLLOW_SETTINGS = auto()
 	CHANGE_FULLSCREEN_MODE = auto()
-	START_SPOTLIGHT = auto()
+	START_OVERVIEW = auto()
 
 	@property
 	def _displayStringLabels(self) -> dict["MagnifierAction", str]:
@@ -85,7 +85,7 @@ class MagnifierAction(DisplayStringEnum):
 			# Translators: Action description for changing full-screen mode.
 			self.CHANGE_FULLSCREEN_MODE: pgettext("magnifier action", "change full-screen mode"),
 			# Translators: Action description for showing entire screen overview.
-			self.START_SPOTLIGHT: pgettext("magnifier action", "show screen overview"),
+			self.START_OVERVIEW: pgettext("magnifier action", "show screen overview"),
 		}
 
 

@@ -15,7 +15,7 @@ import ui
 from winBindings import magnification
 from .magnifier import Magnifier
 from .utils.filterHandler import FilterMatrix
-from .utils.spotlightManager import SpotlightManager
+from .utils.overviewManager import OverviewManager
 from .utils.types import (
 	Filter,
 	MagnifiedView,
@@ -38,7 +38,7 @@ class FullScreenMagnifier(Magnifier):
 		super().__init__()
 		self._fullscreenMode = getFullscreenMode()
 		self.currentCoordinates = Coordinates(0, 0)
-		self._spotlightManager = SpotlightManager(self)
+		self._overviewManager = OverviewManager(self)
 		self._displaySize = Size(self._displayOrientation.width, self._displayOrientation.height)
 
 	@Magnifier.filterType.setter
@@ -351,21 +351,21 @@ class FullScreenMagnifier(Magnifier):
 		self._lastScreenPosition = Coordinates(centerX, centerY)
 		return self._lastScreenPosition
 
-	def _startSpotlight(self) -> None:
+	def _startOverview(self) -> None:
 		"""
-		Launch Spotlight from Full-screen class
+		Launch Overview from Full-screen class
 		"""
 		log.debug(
-			f"Launching spotlight mode from full-screen magnifier with mode {self._fullscreenMode}",
+			f"Launching overview mode from full-screen magnifier with mode {self._fullscreenMode}",
 		)
 		self._stopTimer()
-		self._spotlightManager._startSpotlight()
+		self._overviewManager._startOverview()
 
-	def _stopSpotlight(self) -> None:
+	def _stopOverview(self) -> None:
 		"""
-		Stop and destroy Spotlight from Full-screen class
+		Stop and destroy Overview from Full-screen class
 		"""
-		self._spotlightManager._spotlightIsActive = False
+		self._overviewManager._overviewIsActive = False
 		self._startTimer(self._updateMagnifier)
 
 	@override

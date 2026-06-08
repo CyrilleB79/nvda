@@ -286,21 +286,21 @@ def toggleFullscreenMode() -> None:
 			)
 
 
-def startSpotlight() -> None:
-	"""Start spotlight mode in full-screen magnifier"""
+def startOverview() -> None:
+	"""Start overview mode in full-screen magnifier"""
 	magnifier: FullScreenMagnifier = getMagnifier()
 	if magnifierIsActiveVerify(
 		magnifier,
-		MagnifierAction.START_SPOTLIGHT,
+		MagnifierAction.START_OVERVIEW,
 	):
 		if magnifierIsFullscreenVerify(
 			magnifier,
-			MagnifierAction.START_SPOTLIGHT,
+			MagnifierAction.START_OVERVIEW,
 		):
 			fullscreenMagnifier: FullScreenMagnifier = magnifier
-			log.debug("trying to launch spotlight mode")
-			if fullscreenMagnifier._spotlightManager._spotlightIsActive:
-				log.debug("found spotlight manager and it is active")
+			log.debug("trying to launch overview mode")
+			if fullscreenMagnifier._overviewManager._overviewIsActive:
+				log.debug("found overview manager and it is active")
 				ui.message(
 					pgettext(
 						"magnifier",
@@ -309,8 +309,8 @@ def startSpotlight() -> None:
 					),
 				)
 			else:
-				log.debug("no active spotlight manager found, starting new one")
-				fullscreenMagnifier._startSpotlight()
+				log.debug("no active overview manager found, starting new one")
+				fullscreenMagnifier._startOverview()
 				ui.message(
 					pgettext(
 						"magnifier",
@@ -347,7 +347,7 @@ def magnifierIsActiveVerify(
 
 def magnifierIsFullscreenVerify(
 	magnifier: Magnifier,
-	action: Literal[MagnifierAction.CHANGE_FULLSCREEN_MODE, MagnifierAction.START_SPOTLIGHT],
+	action: Literal[MagnifierAction.CHANGE_FULLSCREEN_MODE, MagnifierAction.START_OVERVIEW],
 ) -> bool:
 	"""
 	Verify that the magnifier is full-screen before performing an action

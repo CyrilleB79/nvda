@@ -149,7 +149,7 @@ class Magnifier:
 	def _setZoomRawValue(self, value: float) -> None:
 		"""
 		Set zoom level directly without validation.
-		Used internally for smooth animations (e.g., spotlight).
+		Used internally for smooth animations (e.g., overview).
 
 		:param value: The zoom level to set (can be any intermediate value)
 		"""
