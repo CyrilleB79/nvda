@@ -24,7 +24,7 @@ dependencies = [
 	# NVDA's runtime dependencies
 	"bleak==3.0.2",
 	"comtypes==1.4.13",
-	"cryptography==46.0.7",
+	"cryptography==48.0.1",
 	"pyserial==3.5",
 	"wxPython==4.2.4",
 	# pinned to a commit in tool.uv.sources
