@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.0" srcLang="en">
-<file id="changes.md" original="https://raw.githubusercontent.com/nvaccess/nvda/934659c0426db6569670cef22b548a6df0466d88/user_docs/en/changes.md">
+<file id="changes.md" original="https://raw.githubusercontent.com/nvaccess/nvda/e7d78d79bd393cf718fea10291cbd4ef2f9ed25e/user_docs/en/changes.md">
 <skeleton>
 # $(ID:4bf3ec03-2d43-474a-aef0-92b334e594ed)
 
@@ -121,7 +121,7 @@ $(ID:71516045-0c52-4316-827e-b668d3ae88be)
 * $(ID:a7ef78f8-95ad-42ff-811b-6875252b8ace)
   * $(ID:b0942205-7f95-4363-80f4-7bf1ba760c95)
 * $(ID:0a31bd61-564c-4420-b0c5-d9a8b33b6490)
-* $(ID:9acce842-747b-425e-9256-72797852ff87)
+* $(ID:72c915cd-df44-4aa9-a840-f8e3af168bc5)
 
 #### $(ID:a4df7e5d-d5c3-4870-83db-ec22fef83d67)
 
@@ -7317,13 +7317,13 @@ $(ID:efa13148-65e5-4484-85b1-9e57c61df3e3)
 <source>NVDA no longer briefly disconnects and re-detects the braille display on desktop switches that do not enter the secure desktop, such as when switching between a Remote Desktop session and the local machine. (#18810, #20550, @LeonarddeR)</source>
 </segment>
 </unit>
-<unit id="9acce842-747b-425e-9256-72797852ff87">
+<unit id="72c915cd-df44-4aa9-a840-f8e3af168bc5">
 <notes>
 <note appliesTo="source">line: 121</note>
 <note appliesTo="source">prefix: * </note>
 </notes>
 <segment>
-<source>Fixed incorrect back-translation when using Hindi and several other Indian grade 1 tables for braille input. (#20671)</source>
+<source>Fixed incorrect back-translation when using Hindi and several other Indian grade 1 tables for braille input. (#20671, @codeofdusk)</source>
 </segment>
 </unit>
 <unit id="a4df7e5d-d5c3-4870-83db-ec22fef83d67">
