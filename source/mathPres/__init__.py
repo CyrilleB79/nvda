@@ -172,6 +172,8 @@ class MathInteractionNVDAObject(Window):
 	def event_loseFocus(self) -> None:
 		if vision.handler:
 			vision.handler.handleMathNavigation(None)
+		import _magnifier
+		_magnifier.getMagnifier().updateMathLocation(None)
 		super().event_loseFocus()
 
 	# Translators: Describes a command.

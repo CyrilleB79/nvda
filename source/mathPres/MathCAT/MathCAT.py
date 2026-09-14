@@ -163,10 +163,14 @@ class MathCATInteraction(mathPres.MathInteractionNVDAObject):
 	def _updateMathHighlight(self) -> None:
 		if vision.handler:
 			vision.handler.handleMathNavigation(self._getHighlightRect())
+		import _magnifier
+		_magnifier.getMagnifier().updateMathLocation(self._getHighlightRect())
 
 	def _clearMathHighlight(self) -> None:
 		if vision.handler:
 			vision.handler.handleMathNavigation(None)
+		import _magnifier
+		_magnifier.getMagnifier().updateMathLocation(None)
 
 	def getBrailleRegions(
 		self,

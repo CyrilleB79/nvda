@@ -160,13 +160,13 @@ class FocusManager:
 
 	def _getSystemFocusPosition(self) -> Coordinates:
 		"""
-		Get the current system focus position (focus object + browse mode cursor).
-		This includes both the system focus and the browse mode cursor if active.
+		Get the current system focus position (focus object + caret / browse mode cursor).
+		This includes both the system focus and the caret or browse mode cursor if active.
 
 		:return: The (x, y) coordinates of the system focus position
 		"""
 		try:
-			# Get caret position (works for both browse mode and regular focus)
+			# Get caret position (works for both browse mode and regular caret)
 			caretPosition = api.getCaretPosition()
 			point = self._getPointAtStart(caretPosition)
 			coords = Coordinates(point.x, point.y)
