@@ -166,6 +166,7 @@ class FocusManager:
 		:return: The (x, y) coordinates of the system focus position
 		"""
 		import mathPres
+
 		focusObj = api.getFocusObject()
 		try:
 			# Math is followed as a browse mode cursor so try it first
@@ -178,7 +179,7 @@ class FocusManager:
 					coords = mathRect.left, mathRect.top
 					if coords != Coordinates(0, 0):
 						self._lastValidSystemFocusPosition = coords
-					return coords	
+					return coords
 			# Get caret position (works for both browse mode and regular caret)
 			caretPosition = api.getCaretPosition()
 			point = self._getPointAtStart(caretPosition)
