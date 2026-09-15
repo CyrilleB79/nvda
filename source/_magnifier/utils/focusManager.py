@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2025-2026 NV Access Limited, Antoine Haffreingue
+# Copyright (C) 2025-2026 NV Access Limited, Antoine Haffreingue, Cyrille Bougot
 # This file may be used under the terms of the GNU General Public License, version 2 or later, as modified by the NVDA license.
 # For full terms and any additional permissions, see the NVDA license file: https://github.com/nvaccess/nvda/blob/master/copying.txt
 
@@ -165,7 +165,20 @@ class FocusManager:
 
 		:return: The (x, y) coordinates of the system focus position
 		"""
+		import mathPres
+		focusObj = api.getFocusObject()
 		try:
+			# Math is followed as a browse mode cursor so try it first
+			if isinstance(focusObj, mathPres.MathInteractionNVDAObject):
+				try:
+					mathRect = focusObj.getMathSourceObjectRect()
+				except NotImplementedError:
+					mathRect = None
+				if mathRect:
+					coords = mathRect.left, mathRect.top
+					if coords != Coordinates(0, 0):
+						self._lastValidSystemFocusPosition = coords
+					return coords	
 			# Get caret position (works for both browse mode and regular caret)
 			caretPosition = api.getCaretPosition()
 			point = self._getPointAtStart(caretPosition)
@@ -183,7 +196,6 @@ class FocusManager:
 					exc_info=True,
 				)
 			try:
-				focusObj = api.getFocusObject()
 				if focusObj and focusObj.location:
 					left, top, width, _height = focusObj.location
 					x = left + width if _isWindowRTL(focusObj) else left
