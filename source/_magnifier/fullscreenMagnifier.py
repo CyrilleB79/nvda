@@ -50,16 +50,18 @@ class FullScreenMagnifier(Magnifier):
 		self._inputTransformSupported = systemUtils.hasUiAccess()
 		self.isSecureDesktopActive = False
 		from winAPI.secureDesktop import post_secureDesktopStateChange
+
 		post_secureDesktopStateChange.register(self._onSecureDesktopChange)
 
 	def terminate(self):
 		from winAPI.secureDesktop import post_secureDesktopStateChange
+
 		post_secureDesktopStateChange.unregister(self._onSecureDesktopChange)
 
 	def _onSecureDesktopChange(self, isSecureDesktop: bool | None = None) -> None:
 		"""Internal callback for secure desktop state changes.
 		:param isSecureDesktop: True if transitioning to secure desktop, False otherwise
-				"""
+		"""
 		self.isSecureDesktopActive = isSecureDesktop
 
 	@staticmethod
