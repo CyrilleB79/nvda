@@ -5208,19 +5208,7 @@ The following displays support this automatic detection functionality.
 
 For each display, a table lists its key assignments.
 In these tables:
-* `routing` means pressing any routing key.
-* `multiRouting` means pressing two distinct routing key simultaneously.
 
-### Freedom Scientific Focus/PAC Mate Series {#FreedomScientificFocus}
-
-All Focus and PAC Mate displays from [Freedom Scientific](https://www.freedomscientific.com/) are supported when connected via USB or bluetooth.
-You will need the Freedom Scientific braille display drivers installed on your system.
-If you do not have them already, you can obtain them from the [Focus Blue Braille Display Driver page](https://support.freedomscientific.com/Downloads/Focus/FocusBlueBrailleDisplayDriver).
-Although this page only mentions the Focus Blue display, the drivers support all Freedom Scientific Focus and Pacmate displays.
-
-By default, NVDA can automatically detect and connect to these displays either via USB or bluetooth.
-However, when configuring the display, you can explicitly select "USB" or "Bluetooth" ports to restrict the connection type to be used.
-This might be useful if you want to connect the focus display to NVDA using bluetooth, but still be able to charge it using USB power from your computer.
 NVDA's automatic braille display detection will also recognize the display on USB or Bluetooth.
 
 Following are the key assignments for this display with NVDA.
